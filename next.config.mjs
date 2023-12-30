@@ -70,12 +70,16 @@ if (mode !== "export") {
       },
       {
         source: "/google-fonts/:path*",
-        destination: "https://fonts.googleapis.com/:path*",
+        destination: "https://fonts.loli.net/:path*",
       },
       {
         source: "/sharegpt",
         destination: "https://sharegpt.com/api/conversations",
       },
+      {
+        source: "/sharegithub/:owner/:repo/:path*",
+        destination: "https://api.github.com/repos/:owner/:repo/issues/:path*",
+      }
     ];
 
     return {
