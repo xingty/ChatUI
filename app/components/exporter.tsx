@@ -35,11 +35,11 @@ import NextImage from "next/image";
 
 import { toBlob, toPng } from "html-to-image";
 import { DEFAULT_MASK_AVATAR } from "../store/mask";
-import { api } from "../client/api";
+
 import { prettyObject } from "../utils/format";
-import { EXPORT_MESSAGE_CLASS_NAME } from "../constant";
+import { EXPORT_MESSAGE_CLASS_NAME, ModelProvider } from "../constant";
 import { getClientConfig } from "../config/client";
-import { access } from "fs";
+import { ClientApi } from "../client/api";
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -310,12 +310,20 @@ export function PreviewActions(props: {
 }) {
   const [loading, setLoading] = useState(false);
   const [shouldExport, setShouldExport] = useState(false);
+  const config = useAppConfig();
   const chatStore = useChatStore();
   const accessStore = useAccessStore();
   const session = chatStore.currentSession();
 
   const onRenderMsgs = (msgs: ChatMessage[]) => {
     setShouldExport(false);
+
+    var api: ClientApi;
+    if (config.modelConfig.model === "gemini-pro") {
+      api = new ClientApi(ModelProvider.GeminiPro);
+    } else {
+      api = new ClientApi(ModelProvider.GPT);
+    }
 
     const show = (result: string) => {
       showModal({
@@ -367,6 +375,7 @@ export function PreviewActions(props: {
         const issue = await api.getGithubIssue(
           githubOwner,
           githubRepo,
+          githubToken,
           session.id,
         );
         let url = await api.createOrUpdateIssue(
@@ -576,7 +585,7 @@ export function ImagePreviewer(props: {
           </div>
 
           <div>
-            <div className={styles["main-title"]}>ChatGPT Next Web</div>
+            <div className={styles["main-title"]}>NextChat</div>
             <div className={styles["sub-title"]}>
               github.com/Yidadaa/ChatGPT-Next-Web
             </div>
