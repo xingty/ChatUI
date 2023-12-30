@@ -57,6 +57,7 @@ import {
   RELEASE_URL,
   STORAGE_KEY,
   ServiceProvider,
+  ShareProvider,
   SlotID,
   UPDATE_URL,
 } from "../constant";
@@ -635,7 +636,8 @@ export function Settings() {
         navigate(Path.Home);
       }
     };
-    if (clientConfig?.isApp) { // Force to set custom endpoint to true if it's app
+    if (clientConfig?.isApp) {
+      // Force to set custom endpoint to true if it's app
       accessStore.update((state) => {
         state.useCustomConfig = true;
       });
@@ -1103,6 +1105,99 @@ export function Settings() {
               }
             ></input>
           </ListItem>
+        </List>
+
+        <List id="Share">
+          {!accessStore.hideUserApiKey && (
+            <>
+              <ListItem
+                title={Locale.Settings.Share.Title}
+                subTitle={Locale.Settings.Share.SubTitle}
+              ></ListItem>
+              {
+                <>
+                  <ListItem
+                    title={Locale.Settings.Share.Provider.Title}
+                    subTitle={Locale.Settings.Share.Provider.SubTitle}
+                  >
+                    <Select
+                      value={accessStore.shareProvider}
+                      onChange={(e) => {
+                        accessStore.update(
+                          (access) =>
+                            (access.shareProvider = e.target
+                              .value as ShareProvider),
+                        );
+                      }}
+                    >
+                      {Object.entries(ShareProvider).map(([k, v]) => (
+                        <option value={v} key={k}>
+                          {k}
+                        </option>
+                      ))}
+                    </Select>
+                  </ListItem>
+
+                  {accessStore.shareProvider === "Github" ? (
+                    <>
+                      <ListItem
+                        title={Locale.Settings.Share.Github.Owner.Title}
+                        subTitle={Locale.Settings.Share.Github.Owner.SubTitle}
+                      >
+                        <input
+                          type="text"
+                          value={accessStore.githubOwner}
+                          placeholder="bigbyto"
+                          onChange={(e) =>
+                            accessStore.update(
+                              (access) =>
+                                (access.githubOwner = e.currentTarget.value),
+                            )
+                          }
+                        ></input>
+                      </ListItem>
+
+                      <ListItem
+                        title={Locale.Settings.Share.Github.Repo.Title}
+                        subTitle={Locale.Settings.Share.Github.Repo.SubTitle}
+                      >
+                        <input
+                          type="text"
+                          value={accessStore.githubRepo}
+                          placeholder="repository"
+                          onChange={(e) =>
+                            accessStore.update(
+                              (access) =>
+                                (access.githubRepo = e.currentTarget.value),
+                            )
+                          }
+                        ></input>
+                      </ListItem>
+
+                      <ListItem
+                        title={Locale.Settings.Share.Github.Token.Title}
+                        subTitle={Locale.Settings.Share.Github.Token.SubTitle}
+                      >
+                        <PasswordInput
+                          value={accessStore.githubToken}
+                          type="text"
+                          placeholder="token"
+                          onChange={(e) => {
+                            accessStore.update(
+                              (access) =>
+                                (access.githubToken = e.currentTarget.value),
+                            );
+                          }}
+                        />
+                      </ListItem>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                </>
+              }
+            </>
+          )}
         </List>
 
         <List>
