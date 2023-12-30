@@ -67,6 +67,11 @@ export enum ServiceProvider {
   Azure = "Azure",
 }
 
+export enum ShareProvider {
+  ShareGPT = "ShareGPT",
+  Github = "Github",
+}
+
 export const OpenaiPath = {
   ChatPath: "v1/chat/completions",
   UsagePath: "dashboard/billing/usage",

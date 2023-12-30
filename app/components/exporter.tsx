@@ -1,5 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
-import { ChatMessage, ModelType, useAppConfig, useChatStore } from "../store";
+import {
+  ChatMessage,
+  ModelType,
+  useAppConfig,
+  useChatStore,
+  useAccessStore,
+} from "../store";
 import Locale from "../locales";
 import styles from "./exporter.module.scss";
 import {
@@ -33,6 +39,7 @@ import { api } from "../client/api";
 import { prettyObject } from "../utils/format";
 import { EXPORT_MESSAGE_CLASS_NAME } from "../constant";
 import { getClientConfig } from "../config/client";
+import { access } from "fs";
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -265,11 +272,13 @@ export function RenderExport(props: {
     }
 
     const renderMsgs = messages.map((v, i) => {
+      console.log(v);
       const [role, _] = v.id.split(":");
       return {
         id: i.toString(),
         role: role as any,
-        content: role === "user" ? v.textContent ?? "" : v.innerHTML,
+        // content: role === "user" ? v.textContent ?? "" : v.innerHTML,
+        content: v.textContent ?? "",
         date: "",
       };
     });
@@ -301,47 +310,84 @@ export function PreviewActions(props: {
 }) {
   const [loading, setLoading] = useState(false);
   const [shouldExport, setShouldExport] = useState(false);
+  const chatStore = useChatStore();
+  const accessStore = useAccessStore();
+  const session = chatStore.currentSession();
 
   const onRenderMsgs = (msgs: ChatMessage[]) => {
     setShouldExport(false);
 
-    api
-      .share(msgs)
-      .then((res) => {
-        if (!res) return;
-        showModal({
-          title: Locale.Export.Share,
-          children: [
-            <input
-              type="text"
-              value={res}
-              key="input"
-              style={{
-                width: "100%",
-                maxWidth: "unset",
-              }}
-              readOnly
-              onClick={(e) => e.currentTarget.select()}
-            ></input>,
-          ],
-          actions: [
-            <IconButton
-              icon={<CopyIcon />}
-              text={Locale.Chat.Actions.Copy}
-              key="copy"
-              onClick={() => copyToClipboard(res)}
-            />,
-          ],
-        });
-        setTimeout(() => {
-          window.open(res, "_blank");
-        }, 800);
-      })
-      .catch((e) => {
+    const show = (result: string) => {
+      showModal({
+        title: Locale.Export.Share + accessStore.provider,
+        children: [
+          <input
+            type="text"
+            value={result}
+            key="input"
+            style={{
+              width: "100%",
+              maxWidth: "unset",
+            }}
+            readOnly
+            onClick={(e) => e.currentTarget.select()}
+          ></input>,
+        ],
+        actions: [
+          <IconButton
+            icon={<CopyIcon />}
+            text={Locale.Chat.Actions.Copy}
+            key="copy"
+            onClick={() => copyToClipboard(result)}
+          />,
+        ],
+      });
+    };
+
+    const shareToShareGPT = () => {
+      api
+        .shareToShareGPT(msgs)
+        .then((res) => {
+          if (!res) return;
+          show(res);
+          // setTimeout(() => {
+          //   window.open(res, "_blank");
+          // }, 800);
+        })
+        .catch((e) => {
+          console.error("[Share]", e);
+          showToast(prettyObject(e));
+        })
+        .finally(() => setLoading(false));
+    };
+
+    const shareToGithub = async () => {
+      const { githubRepo, githubOwner, githubToken } = accessStore;
+      try {
+        const issue = await api.getGithubIssue(
+          githubOwner,
+          githubRepo,
+          session.id,
+        );
+        let url = await api.createOrUpdateIssue(
+          githubOwner,
+          githubRepo,
+          githubToken,
+          issue.id,
+          session,
+        );
+        if (url) {
+          show(url);
+        }
+      } catch (e) {
         console.error("[Share]", e);
         showToast(prettyObject(e));
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    accessStore.shareProvider == "Github" ? shareToGithub() : shareToShareGPT();
   };
 
   const share = async () => {
@@ -371,7 +417,7 @@ export function PreviewActions(props: {
           onClick={props.download}
         ></IconButton>
         <IconButton
-          text={Locale.Export.Share}
+          text={Locale.Export.Share + accessStore.shareProvider}
           bordered
           shadow
           icon={loading ? <LoadingIcon /> : <ShareIcon />}

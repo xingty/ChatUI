@@ -3,6 +3,7 @@ import {
   DEFAULT_API_HOST,
   ServiceProvider,
   StoreKey,
+  ShareProvider,
 } from "../constant";
 import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
@@ -19,6 +20,7 @@ const DEFAULT_ACCESS_STATE = {
   useCustomConfig: false,
 
   provider: ServiceProvider.OpenAI,
+  shareProvider: ShareProvider.ShareGPT,
 
   // openai
   openaiUrl: DEFAULT_OPENAI_URL,
@@ -36,6 +38,11 @@ const DEFAULT_ACCESS_STATE = {
   disableGPT4: false,
   disableFastLink: false,
   customModels: "",
+
+  // share provider config
+  githubOwner: "",
+  githubRepo: "",
+  githubToken: "",
 };
 
 export const useAccessStore = createPersistStore(
