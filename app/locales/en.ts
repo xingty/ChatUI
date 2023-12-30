@@ -88,7 +88,7 @@ const en: LocaleType = {
     Download: "Download",
     MessageFromYou: "Message From You",
     MessageFromChatGPT: "Message From ChatGPT",
-    Share: "Share to ShareGPT",
+    Share: "Share to ",
     Format: {
       Title: "Export Format",
       SubTitle: "Markdown or PNG Image",
@@ -344,6 +344,32 @@ const en: LocaleType = {
       SubTitle:
         "A larger value decreasing the likelihood to repeat the same line",
     },
+    Share: {
+      Title: "Share Conversation",
+      SubTitle: "Share your conversation to Online Service",
+
+      Provider: {
+        Title: "Share Provider",
+        SubTitle: "Select a Share Provider",
+      },
+
+      Github: {
+        Owner: {
+          Title: "Owner",
+          SubTitle: "Your Github Username",
+        },
+
+        Repo: {
+          Title: "Repository",
+          SubTitle: "Your Repository name",
+        },
+
+        Token: {
+          Title: "Github Token",
+          SubTitle: "Github AccessToken",
+        },
+      },
+    },
   },
   Store: {
     DefaultTopic: "New Conversation",
@@ -443,8 +469,8 @@ const en: LocaleType = {
   },
   Exporter: {
     Description: {
-      Title: "Only messages after clearing the context will be displayed"
-    },  
+      Title: "Only messages after clearing the context will be displayed",
+    },
     Model: "Model",
     Messages: "Messages",
     Topic: "Topic",

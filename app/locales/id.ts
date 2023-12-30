@@ -77,7 +77,7 @@ const id: PartialLocaleType = {
     Download: "Unduh",
     MessageFromYou: "Pesan dari Anda",
     MessageFromChatGPT: "Pesan dari ChatGPT",
-    Share: "Bagikan ke ShareGPT",
+    Share: "Bagikan",
     Format: {
       Title: "Format Ekspor",
       SubTitle: "Markdown atau Gambar PNG",
@@ -369,8 +369,8 @@ const id: PartialLocaleType = {
   },
   Exporter: {
     Description: {
-      Title: "Hanya pesan setelah menghapus konteks yang akan ditampilkan"
-    },  
+      Title: "Hanya pesan setelah menghapus konteks yang akan ditampilkan",
+    },
     Model: "Model",
     Messages: "Pesan",
     Topic: "Topik",

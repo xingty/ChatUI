@@ -84,7 +84,7 @@ const cn = {
     Title: "分享聊天记录",
     Copy: "全部复制",
     Download: "下载文件",
-    Share: "分享到 ShareGPT",
+    Share: "分享到 ",
     MessageFromYou: "用户",
     MessageFromChatGPT: "ChatGPT",
     Format: {
@@ -339,6 +339,32 @@ const cn = {
       Title: "频率惩罚度 (frequency_penalty)",
       SubTitle: "值越大，越有可能降低重复字词",
     },
+    Share: {
+      Title: "分享会话",
+      SubTitle: "分享你的对话记录到第三方服务",
+
+      Provider: {
+        Title: "分享服务提供商",
+        SubTitle: "选择一个第三方服务分享会话",
+      },
+
+      Github: {
+        Owner: {
+          Title: "仓库拥有者",
+          SubTitle: "你的Github用户名",
+        },
+
+        Repo: {
+          Title: "仓库名称",
+          SubTitle: "会话要分享到的仓库名称",
+        },
+
+        Token: {
+          Title: "Github Token",
+          SubTitle: "Github的AccessToekn",
+        },
+      },
+    },
   },
   Store: {
     DefaultTopic: "新的聊天",
@@ -441,9 +467,9 @@ const cn = {
     Config: "配置",
   },
   Exporter: {
-    Description : {
-      Title: "只有清除上下文之后的消息会被展示"
-    },  
+    Description: {
+      Title: "只有清除上下文之后的消息会被展示",
+    },
     Model: "模型",
     Messages: "消息",
     Topic: "主题",
