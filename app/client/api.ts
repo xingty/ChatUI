@@ -170,7 +170,7 @@ export class ClientApi {
     const sid = session.id;
     const title = session.topic;
     const content = messages
-      .map((m) => `### ${m.role}\n${m.content.trim()}\n`)
+      .map((m) => `## ${m.role}\n${m.content.trim()}\n`)
       .join("\n");
     console.log("[ShareToGithub]", messages);
 
