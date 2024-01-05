@@ -185,7 +185,8 @@ export const useChatStore = createPersistStore(
               ...mask.modelConfig,
             },
           };
-          session.topic = mask.name;
+          // session.topic = mask.name;
+          session.topic = Locale.Store.DefaultTopic;
         }
 
         set((state) => ({
