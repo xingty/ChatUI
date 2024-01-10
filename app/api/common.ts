@@ -30,6 +30,8 @@ export async function requestOpenai(req: NextRequest) {
     "",
   );
 
+  let remoteHost = req.headers.get("x-api-service") ?? "";
+  console.log("[remoteHost]", remoteHost);
   let baseUrl =
     serverConfig.azureUrl || serverConfig.baseUrl || OPENAI_BASE_URL;
 

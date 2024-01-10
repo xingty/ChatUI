@@ -70,6 +70,12 @@ export enum ServiceProvider {
   Google = "Google",
 }
 
+export const ServiceProxy: Record<string, string> = {
+  OpenAI: "/api/openai",
+  Azure: "/api/openai",
+  Google: "/api/google",
+};
+
 export enum ModelProvider {
   GPT = "GPT",
   GeminiPro = "GeminiPro",
