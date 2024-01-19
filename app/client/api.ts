@@ -175,7 +175,7 @@ export class ClientApi {
     console.log("[ShareToGithub]", messages);
 
     const clientConfig = getClientConfig();
-    const proxyUrl = "/sharegithub/xingty/assets";
+    const proxyUrl = `/sharegithub/${owner}/${repo}`;
     const rawUrl = `https://api.github.com/repos/${owner}/${repo}/issues`;
     let shareUrl = clientConfig?.isApp ? rawUrl : proxyUrl;
     const headers = {
