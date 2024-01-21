@@ -243,6 +243,7 @@ function EditEndpointModal(props: { id: string; onClose: () => void }) {
       apiKey: "",
       models: "",
       createdAt: Date.now(),
+      type: "user",
     };
   }
 
@@ -421,23 +422,25 @@ function EndpointPromptModal(props: { onClose?: () => void }) {
                   </div>
                 </div>
 
-                <div className={styles["user-prompt-buttons"]}>
-                  <IconButton
-                    icon={<ClearIcon />}
-                    className={styles["user-prompt-button"]}
-                    onClick={() => accessStore.removeEndpoint(v.id!)}
-                  />
-                  <IconButton
-                    icon={<EditIcon />}
-                    className={styles["user-prompt-button"]}
-                    onClick={() => setEditingEndpointId(v.id)}
-                  />
-                  <IconButton
-                    icon={<EyeIcon />}
-                    className={styles["user-prompt-button"]}
-                    onClick={() => setEditingEndpointId(v.id)}
-                  />
-                </div>
+                {v.type === "user" ? (
+                  <div className={styles["user-prompt-buttons"]}>
+                    <IconButton
+                      icon={<ClearIcon />}
+                      className={styles["user-prompt-button"]}
+                      onClick={() => accessStore.removeEndpoint(v.id!)}
+                    />
+                    <IconButton
+                      icon={<EditIcon />}
+                      className={styles["user-prompt-button"]}
+                      onClick={() => setEditingEndpointId(v.id)}
+                    />
+                    <IconButton
+                      icon={<EyeIcon />}
+                      className={styles["user-prompt-button"]}
+                      onClick={() => setEditingEndpointId(v.id)}
+                    />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

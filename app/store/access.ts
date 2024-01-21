@@ -10,6 +10,7 @@ import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
 import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
+import { nanoid } from "nanoid";
 
 let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 
@@ -65,11 +66,12 @@ export interface Endpoint {
   apiKey: string;
   models: string;
   createdAt: number;
+  type: string;
 }
 
 export const createEndpoint = (provider: ServiceProvider) => {
   return {
-    id: "",
+    id: nanoid(),
     name: "Default",
     provider: provider,
     apiUrl: "",
@@ -78,6 +80,7 @@ export const createEndpoint = (provider: ServiceProvider) => {
     apiKey: "",
     models: "",
     createdAt: 0,
+    type: "user",
   };
 };
 
@@ -128,7 +131,19 @@ export const useAccessStore = createPersistStore(
         .then((res) => res.json())
         .then((res: DangerConfig) => {
           console.log("[Config] got config from server", res);
-          set(() => ({ ...res }));
+          const endpoints = get().endpoints;
+          if (endpoints.length === 0) {
+            const endpoint = createEndpoint(res.defaultProvider);
+            endpoint.apiVersion = res.defaultProvider;
+            endpoint.type = "system";
+
+            endpoints.push(endpoint);
+          }
+
+          set(() => ({
+            ...res,
+            endpoints,
+          }));
         })
         .catch(() => {
           console.error("[Config] failed to fetch config");

@@ -42,17 +42,7 @@ export class ChatGPTApi implements LLMApi {
     let endpoint = accessStore.getDefaultEndpoint();
     console.log("[Request] endpoint: ", endpoint);
     if (!endpoint) {
-      const defaultProvider = accessStore.defaultProvider;
-      const provider = ServiceProxy[defaultProvider] ?? null;
-      if (!provider) {
-        throw Error("no endpoint found");
-      }
-
-      endpoint = createEndpoint(defaultProvider);
-      endpoint.apiVersion =
-        provider === ServiceProvider.Azure ? "2023-03-15-preview" : "v1";
-
-      console.log("[Fallback to Server Default Provider]", endpoint);
+      throw Error("no endpoint found");
     }
 
     const isAzure = endpoint.provider === ServiceProvider.Azure;
