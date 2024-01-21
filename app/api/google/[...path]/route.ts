@@ -17,7 +17,9 @@ async function handle(
 
   const serverConfig = getServerSideConfig();
 
-  let baseUrl = serverConfig.googleUrl || GEMINI_BASE_URL;
+  let remoteHost = req.headers.get("x-api-service") ?? "";
+  console.log("[remoteHost]", remoteHost);
+  let baseUrl = remoteHost || serverConfig.googleUrl || GEMINI_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;

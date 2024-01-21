@@ -33,7 +33,10 @@ export async function requestOpenai(req: NextRequest) {
   let remoteHost = req.headers.get("x-api-service") ?? "";
   console.log("[remoteHost]", remoteHost);
   let baseUrl =
-    serverConfig.azureUrl || serverConfig.baseUrl || OPENAI_BASE_URL;
+    remoteHost ||
+    serverConfig.azureUrl ||
+    serverConfig.baseUrl ||
+    OPENAI_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;
@@ -57,15 +60,15 @@ export async function requestOpenai(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  if (serverConfig.isAzure) {
-    if (!serverConfig.azureApiVersion) {
-      return NextResponse.json({
-        error: true,
-        message: `missing AZURE_API_VERSION in server env vars`,
-      });
-    }
-    path = makeAzurePath(path, serverConfig.azureApiVersion);
-  }
+  // if (serverConfig.isAzure) {
+  //   if (!serverConfig.azureApiVersion) {
+  //     return NextResponse.json({
+  //       error: true,
+  //       message: `missing AZURE_API_VERSION in server env vars`,
+  //     });
+  //   }
+  //   path = makeAzurePath(path, serverConfig.azureApiVersion);
+  // }
 
   const fetchUrl = `${baseUrl}/${path}`;
   const fetchOptions: RequestInit = {

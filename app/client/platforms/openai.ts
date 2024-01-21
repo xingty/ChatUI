@@ -17,6 +17,7 @@ import {
 import { prettyObject } from "@/app/utils/format";
 import { getClientConfig } from "@/app/config/client";
 import { makeAzurePath } from "@/app/azure";
+import { ensure } from "../../utils/clone";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -31,32 +32,32 @@ export class ChatGPTApi implements LLMApi {
   private disableListModels = true;
 
   path(path: string): string {
+    path = path.replaceAll("v1/", "");
     const accessStore = useAccessStore.getState();
-
-    const isAzure = accessStore.provider === ServiceProvider.Azure;
-
-    if (isAzure && !accessStore.isValidAzure()) {
-      throw Error(
-        "incomplete azure config, please check it in your settings page",
-      );
+    const endpoint = accessStore.getDefaultEndpoint();
+    console.log("[Request] endpoint: ", endpoint);
+    if (!endpoint) {
+      throw Error("no endpoint found");
     }
 
-    let baseUrl = isAzure ? accessStore.azureUrl : accessStore.openaiUrl;
+    const isAzure = endpoint.provider === ServiceProvider.Azure;
+    const isApp = !!getClientConfig()?.isApp;
 
-    if (baseUrl.length === 0) {
-      const isApp = !!getClientConfig()?.isApp;
-      baseUrl = isApp ? DEFAULT_API_HOST : ApiPath.OpenAI;
-    }
-
+    let baseUrl = isApp ? endpoint.apiUrl : endpoint.proxyUrl;
     if (baseUrl.endsWith("/")) {
       baseUrl = baseUrl.slice(0, baseUrl.length - 1);
     }
+
     if (!baseUrl.startsWith("http") && !baseUrl.startsWith(ApiPath.OpenAI)) {
       baseUrl = "https://" + baseUrl;
     }
 
     if (isAzure) {
-      path = makeAzurePath(path, accessStore.azureApiVersion);
+      path += `${path.includes("?") ? "&" : "?"}api-version=${
+        endpoint.apiVersion
+      }`;
+    } else {
+      path = `${endpoint.apiVersion}/${path}`;
     }
 
     return [baseUrl, path].join("/");

@@ -414,6 +414,7 @@ export function ChatActions(props: {
   const config = useAppConfig();
   const navigate = useNavigate();
   const chatStore = useChatStore();
+  const accessStore = useAccessStore();
 
   // switch themes
   const theme = config.theme;
@@ -430,18 +431,27 @@ export function ChatActions(props: {
   const stopAll = () => ChatControllerPool.stopAll();
 
   // switch model
-  const currentModel = chatStore.currentSession().mask.modelConfig.model;
+  const currentModel = chatStore.currentSession().mask.modelConfig.model.trim();
   const allModels = useAllModels();
   const models = useMemo(
     () => allModels.filter((m) => m.available),
     [allModels],
   );
+  const endpoints = accessStore.endpoints;
+  const currentEndpointId = chatStore.currentSession().mask.endpointId;
+  const endpoint =
+    endpoints.find((e) => e.id === currentEndpointId) ?? endpoints[0];
+
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showEndpointSelector, setShowEndpointSelector] = useState(false);
 
   useEffect(() => {
     // if current model is not available
     // switch to first available model
     const isUnavaliableModel = !models.some((m) => m.name === currentModel);
+    const model = models.find(
+      (m) => m.name.trim().toLowerCase() === currentModel,
+    );
     if (isUnavaliableModel && models.length > 0) {
       const nextModel = models[0].name as ModelType;
       chatStore.updateCurrentSession(
@@ -526,6 +536,12 @@ export function ChatActions(props: {
         icon={<RobotIcon />}
       />
 
+      <ChatAction
+        onClick={() => setShowEndpointSelector(true)}
+        text={endpoint?.name || ""}
+        icon={<RobotIcon />}
+      />
+
       {showModelSelector && (
         <Selector
           defaultSelectedValue={currentModel}
@@ -541,6 +557,24 @@ export function ChatActions(props: {
               session.mask.syncGlobalConfig = false;
             });
             showToast(s[0]);
+          }}
+        />
+      )}
+
+      {showEndpointSelector && (
+        <Selector
+          defaultSelectedValue={endpoint?.id || ""}
+          items={endpoints.map((e) => ({
+            title: e.name,
+            value: e.id,
+          }))}
+          onClose={() => setShowEndpointSelector(false)}
+          onSelection={(s) => {
+            if (s.length === 0) return;
+            chatStore.updateCurrentSession((session) => {
+              session.mask.endpointId = s[0] as string;
+              session.mask.syncGlobalConfig = false;
+            });
           }}
         />
       )}

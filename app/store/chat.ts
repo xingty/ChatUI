@@ -9,6 +9,7 @@ import {
   DEFAULT_SYSTEM_TEMPLATE,
   KnowledgeCutOffDate,
   ModelProvider,
+  ServiceProvider,
   StoreKey,
   SUMMARIZE_MODEL,
 } from "../constant";
@@ -18,6 +19,7 @@ import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
+import { useAccessStore } from "../store";
 
 export type ChatMessage = RequestMessage & {
   date: string;
@@ -187,6 +189,9 @@ export const useChatStore = createPersistStore(
           };
           // session.topic = mask.name;
           session.topic = Locale.Store.DefaultTopic;
+        } else {
+          session.mask.endpointId =
+            useAccessStore.getState().defaultEndpoint ?? "";
         }
 
         set((state) => ({
@@ -270,7 +275,16 @@ export const useChatStore = createPersistStore(
 
       async onUserInput(content: string) {
         const session = get().currentSession();
+        const accessStore = useAccessStore.getState();
         const modelConfig = session.mask.modelConfig;
+        const endpointId = session.mask.endpointId
+          ? accessStore.defaultEndpoint
+          : "";
+        const endpoints = accessStore.endpoints;
+
+        let endpoint =
+          endpoints.find((e) => e.id === endpointId) || endpoints[0];
+        console.log(["Default Endpoint"], endpoint);
 
         const userContent = fillTemplateWith(content, modelConfig);
         console.log("[User Input] after template: ", userContent);
@@ -304,11 +318,12 @@ export const useChatStore = createPersistStore(
         });
 
         var api: ClientApi;
-        if (modelConfig.model === "gemini-pro") {
+        if (endpoint?.provider === ServiceProvider.Google) {
           api = new ClientApi(ModelProvider.GeminiPro);
         } else {
           api = new ClientApi(ModelProvider.GPT);
         }
+        console.log(["API"], api);
 
         // make request
         api.llm.chat({
