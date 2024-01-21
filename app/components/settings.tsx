@@ -243,6 +243,7 @@ function EditEndpointModal(props: { id: string; onClose: () => void }) {
       apiKey: "",
       models: "",
       createdAt: Date.now(),
+      type: "user",
     };
   }
 
@@ -421,23 +422,25 @@ function EndpointPromptModal(props: { onClose?: () => void }) {
                   </div>
                 </div>
 
-                <div className={styles["user-prompt-buttons"]}>
-                  <IconButton
-                    icon={<ClearIcon />}
-                    className={styles["user-prompt-button"]}
-                    onClick={() => accessStore.removeEndpoint(v.id!)}
-                  />
-                  <IconButton
-                    icon={<EditIcon />}
-                    className={styles["user-prompt-button"]}
-                    onClick={() => setEditingEndpointId(v.id)}
-                  />
-                  <IconButton
-                    icon={<EyeIcon />}
-                    className={styles["user-prompt-button"]}
-                    onClick={() => setEditingEndpointId(v.id)}
-                  />
-                </div>
+                {v.type === "user" ? (
+                  <div className={styles["user-prompt-buttons"]}>
+                    <IconButton
+                      icon={<ClearIcon />}
+                      className={styles["user-prompt-button"]}
+                      onClick={() => accessStore.removeEndpoint(v.id!)}
+                    />
+                    <IconButton
+                      icon={<EditIcon />}
+                      className={styles["user-prompt-button"]}
+                      onClick={() => setEditingEndpointId(v.id)}
+                    />
+                    <IconButton
+                      icon={<EyeIcon />}
+                      className={styles["user-prompt-button"]}
+                      onClick={() => setEditingEndpointId(v.id)}
+                    />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -810,35 +813,11 @@ export function Settings() {
   }
 
   const accessStore = useAccessStore();
-  const shouldHideBalanceQuery = useMemo(() => {
-    const isOpenAiUrl = accessStore.openaiUrl.includes(OPENAI_BASE_URL);
-
-    return (
-      accessStore.hideBalanceQuery ||
-      isOpenAiUrl ||
-      accessStore.provider === ServiceProvider.Azure
-    );
-  }, [
-    accessStore.hideBalanceQuery,
-    accessStore.openaiUrl,
-    accessStore.provider,
-  ]);
-
-  const usage = {
-    used: updateStore.used,
-    subscription: updateStore.subscription,
-  };
-  const [loadingUsage, setLoadingUsage] = useState(false);
-  function checkUsage(force = false) {
-    if (shouldHideBalanceQuery) {
-      return;
-    }
-
-    setLoadingUsage(true);
-    updateStore.updateUsage(force).finally(() => {
-      setLoadingUsage(false);
-    });
-  }
+  // const usage = {
+  //   used: updateStore.used,
+  //   subscription: updateStore.subscription,
+  // };
+  // const [loadingUsage, setLoadingUsage] = useState(false);
 
   const enabledAccessControl = useMemo(
     () => accessStore.enabledAccessControl(),
@@ -856,7 +835,7 @@ export function Settings() {
   useEffect(() => {
     // checks per minutes
     checkUpdate();
-    showUsage && checkUsage();
+    // showUsage && checkUsage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1218,32 +1197,6 @@ export function Settings() {
               </ListItem>
             </>
           )}
-
-          {!shouldHideBalanceQuery && !clientConfig?.isApp ? (
-            <ListItem
-              title={Locale.Settings.Usage.Title}
-              subTitle={
-                showUsage
-                  ? loadingUsage
-                    ? Locale.Settings.Usage.IsChecking
-                    : Locale.Settings.Usage.SubTitle(
-                        usage?.used ?? "[?]",
-                        usage?.subscription ?? "[?]",
-                      )
-                  : Locale.Settings.Usage.NoAccess
-              }
-            >
-              {!showUsage || loadingUsage ? (
-                <div />
-              ) : (
-                <IconButton
-                  icon={<ResetIcon></ResetIcon>}
-                  text={Locale.Settings.Usage.Check}
-                  onClick={() => checkUsage(true)}
-                />
-              )}
-            </ListItem>
-          ) : null}
         </List>
 
         <List id="Share">

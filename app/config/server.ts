@@ -75,15 +75,14 @@ export const getServerSideConfig = () => {
     `[Server Config] using ${randomIndex + 1} of ${apiKeys.length} api key`,
   );
 
-  const getDefaultProvider = () => {
-    if (isAzure) {
-      return ServiceProvider.Azure;
-    } else if (isGoogle) {
-      return ServiceProvider.Google;
-    } else {
-      return ServiceProvider.OpenAI;
-    }
-  };
+  let defaultProvider = ServiceProvider.OpenAI;
+  let defaultAPIVersion = "v1";
+  if (isAzure) {
+    defaultProvider = ServiceProvider.Azure;
+    defaultAPIVersion = process.env.AZURE_API_VERSION || "2023-03-15-preview";
+  } else if (isGoogle) {
+    defaultAPIVersion = ServiceProvider.Google;
+  }
 
   return {
     baseUrl: process.env.BASE_URL,
@@ -111,6 +110,7 @@ export const getServerSideConfig = () => {
     hideBalanceQuery: !process.env.ENABLE_BALANCE_QUERY,
     disableFastLink: !!process.env.DISABLE_FAST_LINK,
     customModels,
-    defaultProvider: getDefaultProvider(),
+    defaultProvider: defaultProvider,
+    defaultAPIVersion: defaultAPIVersion,
   };
 };

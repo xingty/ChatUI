@@ -10,7 +10,14 @@ import { getClientConfig } from "@/app/config/client";
 import Locale from "../../locales";
 import { getServerSideConfig } from "@/app/config/server";
 import de from "@/app/locales/de";
+import { Endpoint } from "../../store";
+
 export class GeminiProApi implements LLMApi {
+  private endpoint: Endpoint;
+  constructor(endpoint: Endpoint) {
+    this.endpoint = endpoint;
+  }
+
   extractMessage(res: any) {
     console.log("[Response] gemini-pro response: ", res);
 
@@ -22,6 +29,7 @@ export class GeminiProApi implements LLMApi {
   }
   async chat(options: ChatOptions): Promise<void> {
     const apiClient = this;
+    const endpoint = this.endpoint;
     const messages = options.messages.map((v) => ({
       role: v.role.replace("assistant", "model").replace("system", "user"),
       parts: [{ text: v.content }],
@@ -90,7 +98,7 @@ export class GeminiProApi implements LLMApi {
         method: "POST",
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
-        headers: getHeaders(),
+        headers: getHeaders(endpoint),
       };
 
       // make a fetch request

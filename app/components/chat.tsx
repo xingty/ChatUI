@@ -34,6 +34,7 @@ import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
+import CloudSuccessIcon from "../icons/cloud-success.svg";
 
 import {
   ChatMessage,
@@ -461,6 +462,15 @@ export function ChatActions(props: {
     }
   }, [chatStore, currentModel, models]);
 
+  function handleShowEndpoint() {
+    if (accessStore.endpoints.length <= 0) {
+      showToast("No endpoint found, please add an endpoint first.");
+      return;
+    }
+
+    setShowEndpointSelector(true);
+  }
+
   return (
     <div className={styles["chat-input-actions"]}>
       {couldStop && (
@@ -537,9 +547,9 @@ export function ChatActions(props: {
       />
 
       <ChatAction
-        onClick={() => setShowEndpointSelector(true)}
+        onClick={() => handleShowEndpoint()}
         text={endpoint?.name || ""}
-        icon={<RobotIcon />}
+        icon={<CloudSuccessIcon />}
       />
 
       {showModelSelector && (
