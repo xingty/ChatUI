@@ -61,6 +61,7 @@ import {
   ShareProvider,
   SlotID,
   UPDATE_URL,
+  ServiceProxy,
 } from "../constant";
 import { Prompt, SearchService, usePromptStore } from "../store/prompt";
 import { ErrorBoundary } from "./error";
@@ -72,6 +73,7 @@ import { useSyncStore } from "../store/sync";
 import { nanoid } from "nanoid";
 import { useMaskStore } from "../store/mask";
 import { ProviderType } from "../utils/cloud";
+import { sendError } from "next/dist/server/api-utils";
 
 function EditPromptModal(props: { id: string; onClose: () => void }) {
   const promptStore = usePromptStore();
@@ -221,6 +223,231 @@ function UserPromptModal(props: { onClose?: () => void }) {
         <EditPromptModal
           id={editingPromptId!}
           onClose={() => setEditingPromptId(undefined)}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditEndpointModal(props: { id: string; onClose: () => void }) {
+  const accessStore = useAccessStore();
+  let initialEndpoint = accessStore.getEndpoint(props.id);
+  if (!initialEndpoint) {
+    initialEndpoint = {
+      id: nanoid(),
+      name: "",
+      provider: ServiceProvider.OpenAI,
+      proxyUrl: ServiceProxy[ServiceProvider.OpenAI],
+      apiUrl: "",
+      apiVersion: "",
+      apiKey: "",
+      models: "",
+      createdAt: Date.now(),
+    };
+  }
+
+  const [endpoint, setEndpoint] = useState(initialEndpoint);
+
+  function handleConfirm(endpoint: any, close: () => void) {
+    console.log(endpoint);
+    accessStore.addOrUpdateEndpoint(endpoint);
+    const keys = ["name", "apiUrl", "apiKey", "apiVersion"];
+    for (const key of keys) {
+      if (endpoint[key] === "") {
+        showToast(`${key} cannot be empty!`);
+        return;
+      }
+    }
+
+    const url = endpoint.apiUrl;
+    console.log(url);
+    if (url.indexOf("http://") === -1 && url.indexOf("https://") === -1) {
+      showToast("URL should start with http:// or https://");
+      return;
+    }
+
+    close();
+  }
+
+  return (
+    <div className="modal-mask">
+      <Modal
+        title="Endpoint"
+        onClose={props.onClose}
+        actions={[
+          <IconButton
+            key=""
+            onClick={() => {
+              handleConfirm(endpoint, props.onClose);
+            }}
+            text={Locale.UI.Confirm}
+            bordered
+          />,
+        ]}
+      >
+        <List id="add-endpoint">
+          <>
+            <ListItem
+              title={Locale.Settings.Access.Provider.Title}
+              subTitle={Locale.Settings.Access.Provider.SubTitle}
+            >
+              <Select
+                value={endpoint.provider}
+                onChange={(e) => {
+                  setEndpoint({
+                    ...endpoint,
+                    provider: e.target.value as ServiceProvider,
+                    proxyUrl: ServiceProxy[e.target.value],
+                  });
+                }}
+              >
+                {Object.entries(ServiceProvider).map(([k, v]) => (
+                  <option value={v} key={k}>
+                    {k}
+                  </option>
+                ))}
+              </Select>
+            </ListItem>
+
+            <>
+              <ListItem
+                title={Locale.Settings.Endpoint.Name.Title}
+                subTitle={Locale.Settings.Endpoint.Name.SubTitle}
+              >
+                <input
+                  type="text"
+                  value={endpoint.name}
+                  placeholder={Locale.Settings.Endpoint.Name.SubTitle}
+                  onChange={(e) =>
+                    setEndpoint({
+                      ...endpoint,
+                      name: e.currentTarget.value,
+                    })
+                  }
+                ></input>
+              </ListItem>
+              <ListItem
+                title={Locale.Settings.Endpoint.Url.Title}
+                subTitle={Locale.Settings.Endpoint.Url.SubTitle}
+              >
+                <input
+                  type="text"
+                  value={endpoint.apiUrl}
+                  placeholder=""
+                  onChange={(e) =>
+                    setEndpoint({
+                      ...endpoint,
+                      apiUrl: e.currentTarget.value,
+                    })
+                  }
+                ></input>
+              </ListItem>
+              <ListItem
+                title={Locale.Settings.Endpoint.Key.Title}
+                subTitle={Locale.Settings.Endpoint.Key.SubTitle}
+              >
+                <PasswordInput
+                  value={endpoint.apiKey}
+                  type="text"
+                  placeholder={Locale.Settings.Endpoint.Key.SubTitle}
+                  onChange={(e) => {
+                    setEndpoint({
+                      ...endpoint,
+                      apiKey: e.currentTarget.value,
+                    });
+                  }}
+                />
+              </ListItem>
+              <ListItem
+                title={Locale.Settings.Endpoint.Version.Title}
+                subTitle={Locale.Settings.Endpoint.Version.SubTitle}
+              >
+                <input
+                  type="text"
+                  value={endpoint.apiVersion}
+                  placeholder="eg: v1, 2023-08-01-preview"
+                  onChange={(e) =>
+                    setEndpoint({
+                      ...endpoint,
+                      apiVersion: e.currentTarget.value,
+                    })
+                  }
+                ></input>
+              </ListItem>
+            </>
+          </>
+        </List>
+      </Modal>
+    </div>
+  );
+}
+
+function EndpointPromptModal(props: { onClose?: () => void }) {
+  const accessStore = useAccessStore();
+  const endpoints = accessStore.endpoints;
+
+  const [editingEndpointId, setEditingEndpointId] = useState<string>();
+
+  return (
+    <div className="modal-mask">
+      <Modal
+        title={Locale.Settings.Endpoint.List.Title}
+        onClose={() => props.onClose?.()}
+        actions={[
+          <IconButton
+            key="add"
+            onClick={() => {
+              setEditingEndpointId("");
+            }}
+            icon={<AddIcon />}
+            bordered
+            text={Locale.Settings.Prompt.Modal.Add}
+          />,
+        ]}
+      >
+        <div className={styles["user-prompt-modal"]}>
+          <div className={styles["user-prompt-list"]}>
+            {endpoints.map((v, _) => (
+              <div
+                className={styles["user-prompt-item"]}
+                key={v.id ?? v.provider}
+              >
+                <div className={styles["user-prompt-header"]}>
+                  <div className={styles["user-prompt-title"]}>
+                    {v.name} | {v.provider}
+                  </div>
+                  <div className={styles["user-prompt-content"] + " one-line"}>
+                    {`URL: ${v.apiUrl}, Model: ${v.models}`}
+                  </div>
+                </div>
+
+                <div className={styles["user-prompt-buttons"]}>
+                  <IconButton
+                    icon={<ClearIcon />}
+                    className={styles["user-prompt-button"]}
+                    onClick={() => accessStore.removeEndpoint(v.id!)}
+                  />
+                  <IconButton
+                    icon={<EditIcon />}
+                    className={styles["user-prompt-button"]}
+                    onClick={() => setEditingEndpointId(v.id)}
+                  />
+                  <IconButton
+                    icon={<EyeIcon />}
+                    className={styles["user-prompt-button"]}
+                    onClick={() => setEditingEndpointId(v.id)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      {editingEndpointId !== undefined && (
+        <EditEndpointModal
+          id={editingEndpointId!}
+          onClose={() => setEditingEndpointId(undefined)}
         />
       )}
     </div>
@@ -623,6 +850,7 @@ export function Settings() {
   const builtinCount = SearchService.count.builtin;
   const customCount = promptStore.getUserPrompts().length ?? 0;
   const [shouldShowPromptModal, setShowPromptModal] = useState(false);
+  const [shouldShowEndpointModal, setShowEndpointModal] = useState(false);
 
   const showUsage = accessStore.isAuthorized();
   useEffect(() => {
@@ -679,6 +907,24 @@ export function Settings() {
       </div>
       <div className={styles["settings"]}>
         <List>
+          {showAccessCode && (
+            <ListItem
+              title={Locale.Settings.Access.AccessCode.Title}
+              subTitle={Locale.Settings.Access.AccessCode.SubTitle}
+            >
+              <PasswordInput
+                value={accessStore.accessCode}
+                type="text"
+                placeholder={Locale.Settings.Access.AccessCode.Placeholder}
+                onChange={(e) => {
+                  accessStore.update(
+                    (access) => (access.accessCode = e.currentTarget.value),
+                  );
+                }}
+              />
+            </ListItem>
+          )}
+
           <ListItem title={Locale.Settings.Avatar}>
             <Popover
               onClose={() => setShowEmojiPicker(false)}
@@ -897,7 +1143,7 @@ export function Settings() {
           </ListItem>
         </List>
 
-        <List id={SlotID.CustomModel}>
+        <List>
           {showAccessCode && (
             <ListItem
               title={Locale.Settings.Access.AccessCode.Title}
@@ -922,206 +1168,54 @@ export function Settings() {
                 // Conditionally render the following ListItem based on clientConfig.isApp
                 !clientConfig?.isApp && ( // only show if isApp is false
                   <ListItem
-                    title={Locale.Settings.Access.CustomEndpoint.Title}
-                    subTitle={Locale.Settings.Access.CustomEndpoint.SubTitle}
+                    title={Locale.Settings.Endpoint.Title}
+                    subTitle={Locale.Settings.Endpoint.SubTitle}
                   >
-                    <input
-                      type="checkbox"
-                      checked={accessStore.useCustomConfig}
-                      onChange={(e) =>
-                        accessStore.update(
-                          (access) =>
-                            (access.useCustomConfig = e.currentTarget.checked),
-                        )
-                      }
-                    ></input>
+                    <IconButton
+                      icon={<EditIcon />}
+                      text="ADD"
+                      onClick={() => setShowEndpointModal(true)}
+                    />
                   </ListItem>
                 )
               }
-              {accessStore.useCustomConfig && (
-                <>
-                  <ListItem
-                    title={Locale.Settings.Access.Provider.Title}
-                    subTitle={Locale.Settings.Access.Provider.SubTitle}
-                  >
-                    <Select
-                      value={accessStore.provider}
-                      onChange={(e) => {
-                        accessStore.update(
-                          (access) =>
-                            (access.provider = e.target
-                              .value as ServiceProvider),
-                        );
-                      }}
-                    >
-                      {Object.entries(ServiceProvider).map(([k, v]) => (
-                        <option value={v} key={k}>
-                          {k}
-                        </option>
-                      ))}
-                    </Select>
-                  </ListItem>
 
-                  {accessStore.provider === "OpenAI" ? (
-                    <>
-                      <ListItem
-                        title={Locale.Settings.Access.OpenAI.Endpoint.Title}
-                        subTitle={
-                          Locale.Settings.Access.OpenAI.Endpoint.SubTitle
-                        }
-                      >
-                        <input
-                          type="text"
-                          value={accessStore.openaiUrl}
-                          placeholder={OPENAI_BASE_URL}
-                          onChange={(e) =>
-                            accessStore.update(
-                              (access) =>
-                                (access.openaiUrl = e.currentTarget.value),
-                            )
-                          }
-                        ></input>
-                      </ListItem>
-                      <ListItem
-                        title={Locale.Settings.Access.OpenAI.ApiKey.Title}
-                        subTitle={Locale.Settings.Access.OpenAI.ApiKey.SubTitle}
-                      >
-                        <PasswordInput
-                          value={accessStore.openaiApiKey}
-                          type="text"
-                          placeholder={
-                            Locale.Settings.Access.OpenAI.ApiKey.Placeholder
-                          }
-                          onChange={(e) => {
-                            accessStore.update(
-                              (access) =>
-                                (access.openaiApiKey = e.currentTarget.value),
-                            );
-                          }}
-                        />
-                      </ListItem>
-                    </>
-                  ) : accessStore.provider === "Azure" ? (
-                    <>
-                      <ListItem
-                        title={Locale.Settings.Access.Azure.Endpoint.Title}
-                        subTitle={
-                          Locale.Settings.Access.Azure.Endpoint.SubTitle +
-                          Azure.ExampleEndpoint
-                        }
-                      >
-                        <input
-                          type="text"
-                          value={accessStore.azureUrl}
-                          placeholder={Azure.ExampleEndpoint}
-                          onChange={(e) =>
-                            accessStore.update(
-                              (access) =>
-                                (access.azureUrl = e.currentTarget.value),
-                            )
-                          }
-                        ></input>
-                      </ListItem>
-                      <ListItem
-                        title={Locale.Settings.Access.Azure.ApiKey.Title}
-                        subTitle={Locale.Settings.Access.Azure.ApiKey.SubTitle}
-                      >
-                        <PasswordInput
-                          value={accessStore.azureApiKey}
-                          type="text"
-                          placeholder={
-                            Locale.Settings.Access.Azure.ApiKey.Placeholder
-                          }
-                          onChange={(e) => {
-                            accessStore.update(
-                              (access) =>
-                                (access.azureApiKey = e.currentTarget.value),
-                            );
-                          }}
-                        />
-                      </ListItem>
-                      <ListItem
-                        title={Locale.Settings.Access.Azure.ApiVerion.Title}
-                        subTitle={
-                          Locale.Settings.Access.Azure.ApiVerion.SubTitle
-                        }
-                      >
-                        <input
-                          type="text"
-                          value={accessStore.azureApiVersion}
-                          placeholder="2023-08-01-preview"
-                          onChange={(e) =>
-                            accessStore.update(
-                              (access) =>
-                                (access.azureApiVersion =
-                                  e.currentTarget.value),
-                            )
-                          }
-                        ></input>
-                      </ListItem>
-                    </>
-                  ) : accessStore.provider === "Google" ? (
-                    <>
-                      <ListItem
-                        title={Locale.Settings.Access.Google.Endpoint.Title}
-                        subTitle={
-                          Locale.Settings.Access.Google.Endpoint.SubTitle +
-                          Google.ExampleEndpoint
-                        }
-                      >
-                        <input
-                          type="text"
-                          value={accessStore.googleUrl}
-                          placeholder={Google.ExampleEndpoint}
-                          onChange={(e) =>
-                            accessStore.update(
-                              (access) =>
-                                (access.googleUrl = e.currentTarget.value),
-                            )
-                          }
-                        ></input>
-                      </ListItem>
-                      <ListItem
-                        title={Locale.Settings.Access.Azure.ApiKey.Title}
-                        subTitle={Locale.Settings.Access.Azure.ApiKey.SubTitle}
-                      >
-                        <PasswordInput
-                          value={accessStore.googleApiKey}
-                          type="text"
-                          placeholder={
-                            Locale.Settings.Access.Google.ApiKey.Placeholder
-                          }
-                          onChange={(e) => {
-                            accessStore.update(
-                              (access) =>
-                                (access.googleApiKey = e.currentTarget.value),
-                            );
-                          }}
-                        />
-                      </ListItem>
-                      <ListItem
-                        title={Locale.Settings.Access.Google.ApiVerion.Title}
-                        subTitle={
-                          Locale.Settings.Access.Google.ApiVerion.SubTitle
-                        }
-                      >
-                        <input
-                          type="text"
-                          value={accessStore.googleApiVersion}
-                          placeholder="2023-08-01-preview"
-                          onChange={(e) =>
-                            accessStore.update(
-                              (access) =>
-                                (access.googleApiVersion =
-                                  e.currentTarget.value),
-                            )
-                          }
-                        ></input>
-                      </ListItem>
-                    </>
-                  ) : null}
-                </>
-              )}
+              <ListItem
+                title={Locale.Settings.Endpoint.Default.Title}
+                subTitle={Locale.Settings.Endpoint.Default.Subtitle}
+              >
+                <Select
+                  value={accessStore.defaultEndpoint}
+                  onChange={(e) => {
+                    console.log("[Default Endpoint]", e.target.value);
+                    accessStore.update(
+                      (access) => (access.defaultEndpoint = e.target.value),
+                    );
+                  }}
+                >
+                  {accessStore.endpoints.map((v) => (
+                    <option value={v.id} key={v.name}>
+                      {v.name}
+                    </option>
+                  ))}
+                </Select>
+              </ListItem>
+
+              <ListItem
+                title={Locale.Settings.Access.CustomModel.Title}
+                subTitle={Locale.Settings.Access.CustomModel.SubTitle}
+              >
+                <input
+                  type="text"
+                  value={config.customModels}
+                  placeholder="model1,model2,model3"
+                  onChange={(e) =>
+                    config.update(
+                      (config) => (config.customModels = e.currentTarget.value),
+                    )
+                  }
+                ></input>
+              </ListItem>
             </>
           )}
 
@@ -1150,22 +1244,6 @@ export function Settings() {
               )}
             </ListItem>
           ) : null}
-
-          <ListItem
-            title={Locale.Settings.Access.CustomModel.Title}
-            subTitle={Locale.Settings.Access.CustomModel.SubTitle}
-          >
-            <input
-              type="text"
-              value={config.customModels}
-              placeholder="model1,model2,model3"
-              onChange={(e) =>
-                config.update(
-                  (config) => (config.customModels = e.currentTarget.value),
-                )
-              }
-            ></input>
-          </ListItem>
         </List>
 
         <List id="Share">
@@ -1274,6 +1352,10 @@ export function Settings() {
 
         {shouldShowPromptModal && (
           <UserPromptModal onClose={() => setShowPromptModal(false)} />
+        )}
+
+        {shouldShowEndpointModal && (
+          <EndpointPromptModal onClose={() => setShowEndpointModal(false)} />
         )}
 
         <DangerItems />

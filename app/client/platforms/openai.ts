@@ -5,8 +5,14 @@ import {
   OpenaiPath,
   REQUEST_TIMEOUT_MS,
   ServiceProvider,
+  ServiceProxy,
 } from "@/app/constant";
-import { useAccessStore, useAppConfig, useChatStore } from "@/app/store";
+import {
+  useAccessStore,
+  useAppConfig,
+  useChatStore,
+  createEndpoint,
+} from "@/app/store";
 
 import { ChatOptions, getHeaders, LLMApi, LLMModel, LLMUsage } from "../api";
 import Locale from "../../locales";
@@ -31,32 +37,42 @@ export class ChatGPTApi implements LLMApi {
   private disableListModels = true;
 
   path(path: string): string {
+    path = path.replaceAll("v1/", "");
     const accessStore = useAccessStore.getState();
+    let endpoint = accessStore.getDefaultEndpoint();
+    console.log("[Request] endpoint: ", endpoint);
+    if (!endpoint) {
+      const defaultProvider = accessStore.defaultProvider;
+      const provider = ServiceProxy[defaultProvider] ?? null;
+      if (!provider) {
+        throw Error("no endpoint found");
+      }
 
-    const isAzure = accessStore.provider === ServiceProvider.Azure;
+      endpoint = createEndpoint(defaultProvider);
+      endpoint.apiVersion =
+        provider === ServiceProvider.Azure ? "2023-03-15-preview" : "v1";
 
-    if (isAzure && !accessStore.isValidAzure()) {
-      throw Error(
-        "incomplete azure config, please check it in your settings page",
-      );
+      console.log("[Fallback to Server Default Provider]", endpoint);
     }
 
-    let baseUrl = isAzure ? accessStore.azureUrl : accessStore.openaiUrl;
+    const isAzure = endpoint.provider === ServiceProvider.Azure;
+    const isApp = !!getClientConfig()?.isApp;
 
-    if (baseUrl.length === 0) {
-      const isApp = !!getClientConfig()?.isApp;
-      baseUrl = isApp ? DEFAULT_API_HOST : ApiPath.OpenAI;
-    }
-
+    let baseUrl = isApp ? endpoint.apiUrl : endpoint.proxyUrl;
     if (baseUrl.endsWith("/")) {
       baseUrl = baseUrl.slice(0, baseUrl.length - 1);
     }
+
     if (!baseUrl.startsWith("http") && !baseUrl.startsWith(ApiPath.OpenAI)) {
       baseUrl = "https://" + baseUrl;
     }
 
     if (isAzure) {
-      path = makeAzurePath(path, accessStore.azureApiVersion);
+      path += `${path.includes("?") ? "&" : "?"}api-version=${
+        endpoint.apiVersion
+      }`;
+    } else {
+      path = `${endpoint.apiVersion}/${path}`;
     }
 
     return [baseUrl, path].join("/");

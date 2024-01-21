@@ -4,6 +4,7 @@ import {
   ServiceProvider,
   StoreKey,
   ShareProvider,
+  ServiceProxy,
 } from "../constant";
 import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
@@ -43,11 +44,41 @@ const DEFAULT_ACCESS_STATE = {
   disableGPT4: false,
   disableFastLink: false,
   customModels: "",
+  defaultProvider: "" as ServiceProvider,
 
   // share provider config
   githubOwner: "",
   githubRepo: "",
   githubToken: "",
+
+  endpoints: [] as Endpoint[],
+  defaultEndpoint: "",
+};
+
+export interface Endpoint {
+  id: string;
+  name: string;
+  provider: ServiceProvider;
+  apiUrl: string;
+  proxyUrl: string;
+  apiVersion: string;
+  apiKey: string;
+  models: string;
+  createdAt: number;
+}
+
+export const createEndpoint = (provider: ServiceProvider) => {
+  return {
+    id: "",
+    name: "Default",
+    provider: provider,
+    apiUrl: "",
+    proxyUrl: ServiceProxy[provider] ?? "",
+    apiVersion: "",
+    apiKey: "",
+    models: "",
+    createdAt: 0,
+  };
 };
 
 export const useAccessStore = createPersistStore(
@@ -105,6 +136,57 @@ export const useAccessStore = createPersistStore(
         .finally(() => {
           fetchState = 2;
         });
+    },
+
+    getEndpoint(id: string) {
+      return get().endpoints.find((v) => v.id === id);
+    },
+
+    removeEndpoint(id: string) {
+      const endpoints = get().endpoints;
+      set(() => ({
+        endpoints: endpoints.filter((v) => v.id !== id),
+      }));
+    },
+
+    addEndpoint(endpoint: Endpoint) {
+      const endpoints = get().endpoints;
+      endpoints.push(endpoint);
+      set(() => ({
+        endpoints,
+      }));
+    },
+
+    addOrUpdateEndpoint(endpoint: Endpoint) {
+      const endpoints = get().endpoints;
+      const index = endpoints.findIndex((v) => v.id === endpoint.id);
+      if (index === -1) {
+        endpoints.push(endpoint);
+      } else {
+        endpoints[index] = endpoint;
+      }
+
+      let defaultEndpoint = get().defaultEndpoint;
+      const e = endpoints.find((v) => v.id === defaultEndpoint);
+      if (!e) {
+        defaultEndpoint = endpoints[0]?.id || endpoint.id;
+      }
+
+      set(() => ({
+        endpoints,
+        defaultEndpoint,
+      }));
+    },
+
+    getDefaultEndpoint() {
+      const id = get().defaultEndpoint;
+      const endpoints = get().endpoints;
+      const e = endpoints.find((v) => v.id === id);
+      if (e) {
+        return e;
+      }
+
+      return endpoints.length > 0 ? endpoints[0] : null;
     },
   }),
   {

@@ -1,5 +1,5 @@
 import md5 from "spark-md5";
-import { DEFAULT_MODELS } from "../constant";
+import { DEFAULT_MODELS, ServiceProvider } from "../constant";
 
 declare global {
   namespace NodeJS {
@@ -75,6 +75,16 @@ export const getServerSideConfig = () => {
     `[Server Config] using ${randomIndex + 1} of ${apiKeys.length} api key`,
   );
 
+  const getDefaultProvider = () => {
+    if (isAzure) {
+      return ServiceProvider.Azure;
+    } else if (isGoogle) {
+      return ServiceProvider.Google;
+    } else {
+      return ServiceProvider.OpenAI;
+    }
+  };
+
   return {
     baseUrl: process.env.BASE_URL,
     apiKey,
@@ -101,5 +111,6 @@ export const getServerSideConfig = () => {
     hideBalanceQuery: !process.env.ENABLE_BALANCE_QUERY,
     disableFastLink: !!process.env.DISABLE_FAST_LINK,
     customModels,
+    defaultProvider: getDefaultProvider(),
   };
 };

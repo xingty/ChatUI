@@ -253,6 +253,39 @@ const en: LocaleType = {
         Title: "Edit Prompt",
       },
     },
+    Endpoint: {
+      Title: "Endpoints",
+      SubTitle: "API Endpoints",
+
+      Default: {
+        Title: "Default Endpoint",
+        Subtitle: "Select a default endpoint",
+      },
+
+      Name: {
+        Title: "Endpoint Name",
+        SubTitle: "Named your endpoint",
+      },
+
+      Url: {
+        Title: "Endpoint URL",
+        SubTitle: "Endpoint Url,e.g. https://api.openai.com",
+      },
+
+      Key: {
+        Title: "API Key",
+        SubTitle: "API Key",
+      },
+
+      Version: {
+        Title: "API Version",
+        SubTitle: "API Version,e.g. v1(openai),2023-09-01-preview(azure)",
+      },
+
+      List: {
+        Title: "Endpoint List",
+      },
+    },
     HistoryCount: {
       Title: "Attached Messages Count",
       SubTitle: "Number of sent messages attached per request",

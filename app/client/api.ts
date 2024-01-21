@@ -211,20 +211,27 @@ export class ClientApi {
 
 export function getHeaders() {
   const accessStore = useAccessStore.getState();
+  const endpoint = accessStore.getDefaultEndpoint();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "x-requested-with": "XMLHttpRequest",
     Accept: "application/json",
+    "x-api-service": endpoint?.apiUrl || "",
+    "x-api-provider": endpoint?.provider || "OpenAI",
+    "x-api-version": endpoint?.apiVersion || "",
   };
-  const modelConfig = useChatStore.getState().currentSession().mask.modelConfig;
-  const isGoogle = modelConfig.model === "gemini-pro";
-  const isAzure = accessStore.provider === ServiceProvider.Azure;
+  // const modelConfig = useChatStore.getState().currentSession().mask.modelConfig;
+  // const isGoogle = modelConfig.model === "gemini-pro";
+  // const isAzure = accessStore.provider === ServiceProvider.Azure;
+  const isAzure = endpoint?.provider === ServiceProvider.Azure;
   const authHeader = isAzure ? "api-key" : "Authorization";
-  const apiKey = isGoogle
-    ? accessStore.googleApiKey
-    : isAzure
-    ? accessStore.azureApiKey
-    : accessStore.openaiApiKey;
+  // const apiKey = isGoogle
+  //   ? accessStore.googleApiKey
+  //   : isAzure
+  //   ? accessStore.azureApiKey
+  //   : accessStore.openaiApiKey;
+  const apiKey = endpoint?.apiKey || "";
 
   const makeBearer = (s: string) => `${isAzure ? "" : "Bearer "}${s.trim()}`;
   const validString = (x: string) => x && x.length > 0;
