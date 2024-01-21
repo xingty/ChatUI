@@ -5,8 +5,14 @@ import {
   OpenaiPath,
   REQUEST_TIMEOUT_MS,
   ServiceProvider,
+  ServiceProxy,
 } from "@/app/constant";
-import { useAccessStore, useAppConfig, useChatStore } from "@/app/store";
+import {
+  useAccessStore,
+  useAppConfig,
+  useChatStore,
+  createEndpoint,
+} from "@/app/store";
 
 import { ChatOptions, getHeaders, LLMApi, LLMModel, LLMUsage } from "../api";
 import Locale from "../../locales";
@@ -17,7 +23,6 @@ import {
 import { prettyObject } from "@/app/utils/format";
 import { getClientConfig } from "@/app/config/client";
 import { makeAzurePath } from "@/app/azure";
-import { ensure } from "../../utils/clone";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -34,10 +39,20 @@ export class ChatGPTApi implements LLMApi {
   path(path: string): string {
     path = path.replaceAll("v1/", "");
     const accessStore = useAccessStore.getState();
-    const endpoint = accessStore.getDefaultEndpoint();
+    let endpoint = accessStore.getDefaultEndpoint();
     console.log("[Request] endpoint: ", endpoint);
     if (!endpoint) {
-      throw Error("no endpoint found");
+      const defaultProvider = accessStore.defaultProvider;
+      const provider = ServiceProxy[defaultProvider] ?? null;
+      if (!provider) {
+        throw Error("no endpoint found");
+      }
+
+      endpoint = createEndpoint(defaultProvider);
+      endpoint.apiVersion =
+        provider === ServiceProvider.Azure ? "2023-03-15-preview" : "v1";
+
+      console.log("[Fallback to Server Default Provider]", endpoint);
     }
 
     const isAzure = endpoint.provider === ServiceProvider.Azure;

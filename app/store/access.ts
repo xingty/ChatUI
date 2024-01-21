@@ -44,6 +44,7 @@ const DEFAULT_ACCESS_STATE = {
   disableGPT4: false,
   disableFastLink: false,
   customModels: "",
+  defaultProvider: "" as ServiceProvider,
 
   // share provider config
   githubOwner: "",
@@ -65,6 +66,20 @@ export interface Endpoint {
   models: string;
   createdAt: number;
 }
+
+export const createEndpoint = (provider: ServiceProvider) => {
+  return {
+    id: "",
+    name: "Default",
+    provider: provider,
+    apiUrl: "",
+    proxyUrl: ServiceProxy[provider] ?? "",
+    apiVersion: "",
+    apiKey: "",
+    models: "",
+    createdAt: 0,
+  };
+};
 
 export const useAccessStore = createPersistStore(
   { ...DEFAULT_ACCESS_STATE },
