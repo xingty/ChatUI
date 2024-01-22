@@ -39,7 +39,7 @@ import { DEFAULT_MASK_AVATAR } from "../store/mask";
 import { prettyObject } from "../utils/format";
 import { EXPORT_MESSAGE_CLASS_NAME, ModelProvider } from "../constant";
 import { getClientConfig } from "../config/client";
-import { ClientApi } from "../client/api";
+import { ShareApi } from "../client/share";
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -318,12 +318,7 @@ export function PreviewActions(props: {
   const onRenderMsgs = (msgs: ChatMessage[]) => {
     setShouldExport(false);
 
-    var api: ClientApi;
-    if (config.modelConfig.model === "gemini-pro") {
-      api = new ClientApi(ModelProvider.GeminiPro);
-    } else {
-      api = new ClientApi(ModelProvider.GPT);
-    }
+    const api: ShareApi = new ShareApi();
 
     const show = (result: string) => {
       showModal({

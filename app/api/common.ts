@@ -24,6 +24,7 @@ export async function requestOpenai(req: NextRequest) {
     authValue = req.headers.get("Authorization") ?? "";
     authHeaderName = "Authorization";
   }
+  console.log("[Auth] ", authValue, authHeaderName);
 
   let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
     "/api/openai/",
@@ -75,7 +76,7 @@ export async function requestOpenai(req: NextRequest) {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
-      Accept: req.headers.get("accept") || "*/*",
+      Accept: "text/event-stream",
       [authHeaderName]: authValue,
       ...(serverConfig.openaiOrgId && {
         "OpenAI-Organization": serverConfig.openaiOrgId,
@@ -89,6 +90,9 @@ export async function requestOpenai(req: NextRequest) {
     duplex: "half",
     signal: controller.signal,
   };
+  console.log("[Headers]", fetchOptions.headers);
+
+  // throw new Error("Not implemented");
 
   // #1815 try to refuse gpt4 request
   if (serverConfig.customModels && req.body) {

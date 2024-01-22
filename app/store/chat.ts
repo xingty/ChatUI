@@ -273,18 +273,23 @@ export const useChatStore = createPersistStore(
         get().summarizeSession();
       },
 
-      async onUserInput(content: string) {
-        const session = get().currentSession();
+      getChantEndpoint(session: ChatSession) {
         const accessStore = useAccessStore.getState();
-        const modelConfig = session.mask.modelConfig;
-        const endpointId = session.mask.endpointId
-          ? accessStore.defaultEndpoint
-          : "";
+        const endpointId =
+          session.mask.endpointId ?? accessStore.defaultEndpoint;
         const endpoints = accessStore.endpoints;
 
         let endpoint =
           endpoints.find((e) => e.id === endpointId) || endpoints[0];
         console.log(["Default Endpoint"], endpoint);
+
+        return endpoint;
+      },
+
+      async onUserInput(content: string) {
+        const session = get().currentSession();
+        const modelConfig = session.mask.modelConfig;
+        const endpoint = get().getChantEndpoint(session);
 
         const userContent = fillTemplateWith(content, modelConfig);
         console.log("[User Input] after template: ", userContent);
@@ -319,9 +324,9 @@ export const useChatStore = createPersistStore(
 
         var api: ClientApi;
         if (endpoint?.provider === ServiceProvider.Google) {
-          api = new ClientApi(ModelProvider.GeminiPro);
+          api = new ClientApi(ModelProvider.GeminiPro, endpoint);
         } else {
-          api = new ClientApi(ModelProvider.GPT);
+          api = new ClientApi(ModelProvider.GPT, endpoint);
         }
         console.log(["API"], api);
 
@@ -502,12 +507,13 @@ export const useChatStore = createPersistStore(
         const config = useAppConfig.getState();
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
+        const endpoint = get().getChantEndpoint(session);
 
         var api: ClientApi;
         if (modelConfig.model === "gemini-pro") {
-          api = new ClientApi(ModelProvider.GeminiPro);
+          api = new ClientApi(ModelProvider.GeminiPro, endpoint);
         } else {
-          api = new ClientApi(ModelProvider.GPT);
+          api = new ClientApi(ModelProvider.GPT, endpoint);
         }
 
         // remove error messages if any

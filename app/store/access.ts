@@ -5,6 +5,7 @@ import {
   StoreKey,
   ShareProvider,
   ServiceProxy,
+  SYSTEM_ENDPOINT_ID,
 } from "../constant";
 import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
@@ -132,11 +133,15 @@ export const useAccessStore = createPersistStore(
         .then((res: DangerConfig) => {
           console.log("[Config] got config from server", res);
           const endpoints = get().endpoints;
-          if (endpoints.length === 0) {
-            const endpoint = createEndpoint(res.defaultProvider);
-            endpoint.apiVersion = res.defaultProvider;
-            endpoint.type = "system";
+          const endpoint = createEndpoint(res.defaultProvider);
+          endpoint.id = SYSTEM_ENDPOINT_ID;
+          endpoint.apiVersion = res.defaultAPIVersion;
+          endpoint.type = "system";
 
+          const index = endpoints.findIndex((v) => v.id === SYSTEM_ENDPOINT_ID);
+          if (index !== -1) {
+            endpoints[index] = endpoint;
+          } else {
             endpoints.push(endpoint);
           }
 
