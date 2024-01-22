@@ -289,7 +289,7 @@ export const useChatStore = createPersistStore(
       async onUserInput(content: string) {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
-        const endpointId = session.mask.endpointId;
+        const endpointId = session.mask.endpointId || "";
         const endpoint = useAccessStore
           .getState()
           .getEndpointOrDefault(endpointId);
@@ -510,7 +510,7 @@ export const useChatStore = createPersistStore(
         const config = useAppConfig.getState();
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
-        const endpointId = session.mask.endpointId;
+        const endpointId = session.mask.endpointId || "";
         const endpoint = useAccessStore
           .getState()
           .getEndpointOrDefault(endpointId);

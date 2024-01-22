@@ -17,7 +17,7 @@ export type Mask = {
   modelConfig: ModelConfig;
   lang: Lang;
   builtin: boolean;
-  endpointId: string;
+  endpointId?: string;
 };
 
 export const DEFAULT_MASK_STATE = {

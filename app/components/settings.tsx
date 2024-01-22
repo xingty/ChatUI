@@ -317,7 +317,7 @@ function EditEndpointModal(props: { id: string; onClose: () => void }) {
               >
                 <input
                   type="text"
-                  value={endpoint.name}
+                  value={endpoint?.name}
                   placeholder={Locale.Settings.Endpoint.Name.SubTitle}
                   onChange={(e) =>
                     setEndpoint({
@@ -418,7 +418,7 @@ function EndpointPromptModal(props: { onClose?: () => void }) {
                     {v.name} | {v.provider}
                   </div>
                   <div className={styles["user-prompt-content"] + " one-line"}>
-                    {`URL: ${v.apiUrl}, Model: ${v.models}`}
+                    {`URL: ${v.apiUrl || "System Detect"}`}
                   </div>
                 </div>
 

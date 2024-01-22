@@ -73,7 +73,7 @@ export interface Endpoint {
 export const createEndpoint = (provider: ServiceProvider) => {
   return {
     id: nanoid(),
-    name: "Default",
+    name: "",
     provider: provider,
     apiUrl: "",
     proxyUrl: ServiceProxy[provider] ?? "",
@@ -134,6 +134,7 @@ export const useAccessStore = createPersistStore(
           console.log("[Config] got config from server", res);
           const endpoints = get().endpoints;
           const endpoint = createEndpoint(res.defaultProvider);
+          endpoint.name = "System";
           endpoint.id = SYSTEM_ENDPOINT_ID;
           endpoint.apiVersion = res.defaultAPIVersion;
           endpoint.type = "system";
@@ -206,12 +207,17 @@ export const useAccessStore = createPersistStore(
         return e;
       }
 
-      return endpoints.length > 0 ? endpoints[0] : null;
+      return endpoints[0];
     },
 
     getEndpointOrDefault(endpointId: string) {
       const endpoints = get().endpoints;
-      return endpoints.find((e) => e.id === endpointId) || endpoints[0];
+      let endpoint = endpoints.find((e) => e.id === endpointId);
+      if (!!!endpoint) {
+        return this.getDefaultEndpoint();
+      }
+
+      return endpoint;
     },
   }),
   {

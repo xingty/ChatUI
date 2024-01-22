@@ -439,7 +439,7 @@ export function ChatActions(props: {
     [allModels],
   );
 
-  const endpointId = chatStore.currentSession().mask.endpointId;
+  const endpointId = chatStore.currentSession().mask.endpointId || "";
   const endpoint = accessStore.getEndpointOrDefault(endpointId);
   const endpoints = accessStore.endpoints;
 
@@ -930,7 +930,7 @@ function _Chat() {
     context.push(copiedHello);
   }
 
-  const endpointId = session.mask.endpointId;
+  const endpointId = session.mask.endpointId || "";
   const endpoint = accessStore.getEndpointOrDefault(endpointId);
 
   // preview messages
@@ -1119,7 +1119,7 @@ function _Chat() {
             {!session.topic ? DEFAULT_TOPIC : session.topic}
           </div>
           <div className="window-header-sub-title">
-            {Locale.Chat.SubTitle(session.messages.length)} | {endpoint.name}
+            {Locale.Chat.SubTitle(session.messages.length)} | {endpoint?.name}
           </div>
         </div>
         <div className="window-actions">
