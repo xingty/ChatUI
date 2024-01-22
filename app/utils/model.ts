@@ -30,8 +30,8 @@ export function collectModelTable(
       const available = !m.startsWith("-");
       const nameConfig =
         m.startsWith("+") || m.startsWith("-") ? m.slice(1) : m;
-      const [name, displayName] = nameConfig.split("=");
-
+      let [name, displayName] = nameConfig.split("=");
+      name = name.trim();
       // enable or disable all models
       if (name === "all") {
         Object.values(modelTable).forEach(

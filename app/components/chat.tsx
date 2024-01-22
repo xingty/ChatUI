@@ -449,10 +449,11 @@ export function ChatActions(props: {
   useEffect(() => {
     // if current model is not available
     // switch to first available model
-    const isUnavaliableModel = !models.some((m) => m.name === currentModel);
-    const model = models.find(
-      (m) => m.name.trim().toLowerCase() === currentModel,
+    const isUnavaliableModel = !models.some(
+      (m) => m.name.trim() === currentModel,
     );
+    const model = models.find((m) => m.name.trim() === currentModel);
+    console.log(["Model debug"], isUnavaliableModel, currentModel, models);
     if (isUnavaliableModel && models.length > 0) {
       const nextModel = models[0].name as ModelType;
       chatStore.updateCurrentSession(
