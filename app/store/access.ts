@@ -208,6 +208,11 @@ export const useAccessStore = createPersistStore(
 
       return endpoints.length > 0 ? endpoints[0] : null;
     },
+
+    getEndpointOrDefault(endpointId: string) {
+      const endpoints = get().endpoints;
+      return endpoints.find((e) => e.id === endpointId) || endpoints[0];
+    },
   }),
   {
     name: StoreKey.Access,

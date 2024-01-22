@@ -438,10 +438,10 @@ export function ChatActions(props: {
     () => allModels.filter((m) => m.available),
     [allModels],
   );
+
+  const endpointId = chatStore.currentSession().mask.endpointId;
+  const endpoint = accessStore.getEndpointOrDefault(endpointId);
   const endpoints = accessStore.endpoints;
-  const currentEndpointId = chatStore.currentSession().mask.endpointId;
-  const endpoint =
-    endpoints.find((e) => e.id === currentEndpointId) ?? endpoints[0];
 
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showEndpointSelector, setShowEndpointSelector] = useState(false);
@@ -930,6 +930,9 @@ function _Chat() {
     context.push(copiedHello);
   }
 
+  const endpointId = session.mask.endpointId;
+  const endpoint = accessStore.getEndpointOrDefault(endpointId);
+
   // preview messages
   const renderMessages = useMemo(() => {
     return context
@@ -1116,7 +1119,7 @@ function _Chat() {
             {!session.topic ? DEFAULT_TOPIC : session.topic}
           </div>
           <div className="window-header-sub-title">
-            {Locale.Chat.SubTitle(session.messages.length)}
+            {Locale.Chat.SubTitle(session.messages.length)} | {endpoint.name}
           </div>
         </div>
         <div className="window-actions">

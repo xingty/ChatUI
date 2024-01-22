@@ -273,23 +273,26 @@ export const useChatStore = createPersistStore(
         get().summarizeSession();
       },
 
-      getChantEndpoint(session: ChatSession) {
-        const accessStore = useAccessStore.getState();
-        const endpointId =
-          session.mask.endpointId ?? accessStore.defaultEndpoint;
-        const endpoints = accessStore.endpoints;
+      // getChantEndpoint(session: ChatSession) {
+      //   const accessStore = useAccessStore.getState();
+      //   const endpointId =
+      //     session.mask.endpointId ?? accessStore.defaultEndpoint;
+      //   const endpoints = accessStore.endpoints;
 
-        let endpoint =
-          endpoints.find((e) => e.id === endpointId) || endpoints[0];
-        console.log(["Default Endpoint"], endpoint);
+      //   let endpoint =
+      //     endpoints.find((e) => e.id === endpointId) || endpoints[0];
+      //   console.log(["Default Endpoint"], endpoint);
 
-        return endpoint;
-      },
+      //   return endpoint;
+      // },
 
       async onUserInput(content: string) {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
-        const endpoint = get().getChantEndpoint(session);
+        const endpointId = session.mask.endpointId;
+        const endpoint = useAccessStore
+          .getState()
+          .getEndpointOrDefault(endpointId);
 
         const userContent = fillTemplateWith(content, modelConfig);
         console.log("[User Input] after template: ", userContent);
@@ -507,7 +510,10 @@ export const useChatStore = createPersistStore(
         const config = useAppConfig.getState();
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
-        const endpoint = get().getChantEndpoint(session);
+        const endpointId = session.mask.endpointId;
+        const endpoint = useAccessStore
+          .getState()
+          .getEndpointOrDefault(endpointId);
 
         var api: ClientApi;
         if (modelConfig.model === "gemini-pro") {
