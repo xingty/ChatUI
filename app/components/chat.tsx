@@ -438,10 +438,10 @@ export function ChatActions(props: {
     () => allModels.filter((m) => m.available),
     [allModels],
   );
+
+  const endpointId = chatStore.currentSession().mask.endpointId || "";
+  const endpoint = accessStore.getEndpointOrDefault(endpointId);
   const endpoints = accessStore.endpoints;
-  const currentEndpointId = chatStore.currentSession().mask.endpointId;
-  const endpoint =
-    endpoints.find((e) => e.id === currentEndpointId) ?? endpoints[0];
 
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showEndpointSelector, setShowEndpointSelector] = useState(false);
@@ -449,10 +449,11 @@ export function ChatActions(props: {
   useEffect(() => {
     // if current model is not available
     // switch to first available model
-    const isUnavaliableModel = !models.some((m) => m.name === currentModel);
-    const model = models.find(
-      (m) => m.name.trim().toLowerCase() === currentModel,
+    const isUnavaliableModel = !models.some(
+      (m) => m.name.trim() === currentModel,
     );
+    const model = models.find((m) => m.name.trim() === currentModel);
+    console.log(["Model debug"], isUnavaliableModel, currentModel, models);
     if (isUnavaliableModel && models.length > 0) {
       const nextModel = models[0].name as ModelType;
       chatStore.updateCurrentSession(
@@ -930,6 +931,9 @@ function _Chat() {
     context.push(copiedHello);
   }
 
+  const endpointId = session.mask.endpointId || "";
+  const endpoint = accessStore.getEndpointOrDefault(endpointId);
+
   // preview messages
   const renderMessages = useMemo(() => {
     return context
@@ -1116,7 +1120,7 @@ function _Chat() {
             {!session.topic ? DEFAULT_TOPIC : session.topic}
           </div>
           <div className="window-header-sub-title">
-            {Locale.Chat.SubTitle(session.messages.length)}
+            {Locale.Chat.SubTitle(session.messages.length)} | {endpoint?.name}
           </div>
         </div>
         <div className="window-actions">
