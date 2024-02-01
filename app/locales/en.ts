@@ -421,6 +421,9 @@ const en: LocaleType = {
         },
       },
     },
+    Button: {
+      Add: "Add",
+    },
   },
   Store: {
     DefaultTopic: "New Conversation",

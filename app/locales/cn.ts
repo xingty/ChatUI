@@ -415,6 +415,10 @@ const cn = {
         },
       },
     },
+
+    Button: {
+      Add: "添加",
+    },
   },
   Store: {
     DefaultTopic: "新的聊天",
