@@ -1152,7 +1152,7 @@ export function Settings() {
                   >
                     <IconButton
                       icon={<EditIcon />}
-                      text="ADD"
+                      text={Locale.Settings.Button.Add}
                       onClick={() => setShowEndpointModal(true)}
                     />
                   </ListItem>
