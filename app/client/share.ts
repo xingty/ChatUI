@@ -8,7 +8,8 @@ export class ShareApi {
     token: string,
     label: string,
   ) {
-    const requestUrl = `/sharegithub/${owner}/${repo}?labels=${label}&state=open`;
+    // The parameter `ts` is used to fix the cache issue
+    const requestUrl = `/sharegithub/${owner}/${repo}?labels=${label}&state=open&ts=${Date.now()}`;
     const res = await fetch(requestUrl, {
       headers: {
         Accept: "application/json",
@@ -97,6 +98,8 @@ export class ShareApi {
       method = "PATCH";
       shareUrl = `${shareUrl}/${isn}`;
     }
+
+    console.log("[Share]", isn, method, shareUrl);
 
     const res = await fetch(shareUrl, {
       body: body,

@@ -40,6 +40,8 @@ import {
   useUpdateStore,
   useAccessStore,
   useAppConfig,
+  ShareProviderType,
+  ShareProvider,
 } from "../store";
 
 import Locale, {
@@ -51,17 +53,14 @@ import Locale, {
 import { copyToClipboard } from "../utils";
 import Link from "next/link";
 import {
-  Azure,
-  Google,
-  OPENAI_BASE_URL,
   Path,
   RELEASE_URL,
   STORAGE_KEY,
   ServiceProvider,
-  ShareProvider,
   SlotID,
   UPDATE_URL,
   ServiceProxy,
+  SYSTEM_SHARE_PROVIDER_ID,
 } from "../constant";
 import { Prompt, SearchService, usePromptStore } from "../store/prompt";
 import { ErrorBoundary } from "./error";
@@ -457,6 +456,194 @@ function EndpointPromptModal(props: { onClose?: () => void }) {
   );
 }
 
+function EditSharedModal(props: { id: string; onClose: () => void }) {
+  const accessStore = useAccessStore();
+  let initState = {
+    id: nanoid(),
+    name: "",
+    type: ShareProviderType.ShareGPT,
+    githubOwner: "",
+    githubRepo: "",
+    githubToken: "",
+    createAt: Date.now(),
+  };
+
+  let provider = accessStore.getShareProvider(props.id);
+  if (provider) {
+    initState.name = provider.name;
+    initState.type = provider.type;
+    initState.id = provider.id;
+    initState.createAt = provider.createdAt;
+    if (provider.type === ShareProviderType.Github) {
+      initState.githubOwner = provider.params.githubOwner;
+      initState.githubRepo = provider.params.githubRepo;
+      initState.githubToken = provider.params.githubToken;
+    }
+  }
+
+  const [shareState, setShareState] = useState(initState);
+
+  function handleShareConfirm(currentState: any, close: () => void) {
+    console.log(currentState);
+    const keys = ["name"];
+    let provider: ShareProvider = {
+      id: currentState.id,
+      name: currentState.name,
+      type: currentState.type,
+      params: {},
+      createdAt: currentState.createdAt,
+    };
+
+    if (currentState.type === ShareProviderType.Github) {
+      provider.params = {
+        githubOwner: currentState.githubOwner,
+        githubRepo: currentState.githubRepo,
+        githubToken: currentState.githubToken,
+      };
+      keys.push("githubOwner", "githubRepo", "githubToken");
+    }
+
+    console.log(provider);
+    for (const key of keys) {
+      if (currentState[key] === "") {
+        showToast(`${key} cannot be empty!`);
+        return;
+      }
+    }
+
+    const exist = accessStore.getShareProvider(currentState.id);
+    if (exist) {
+      accessStore.updateShareProvider(provider);
+    } else {
+      accessStore.addShareProvider(provider);
+    }
+
+    if (!accessStore.defaultShareProviderId) {
+      accessStore.update((v) => (v.defaultShareProviderId = provider.id));
+    }
+
+    close();
+  }
+
+  return (
+    <div className="modal-mask">
+      <Modal
+        title="Share Provider"
+        onClose={props.onClose}
+        actions={[
+          <IconButton
+            key=""
+            onClick={() => {
+              handleShareConfirm(shareState, props.onClose);
+            }}
+            text={Locale.UI.Confirm}
+            bordered
+          />,
+        ]}
+      >
+        <List id="add-share-provider">
+          <>
+            <ListItem
+              title={Locale.Settings.Share.Provider.Name.Title}
+              subTitle={Locale.Settings.Share.Provider.Name.SubTitle}
+            >
+              <input
+                type="text"
+                value={shareState?.name}
+                placeholder={Locale.Settings.Share.Provider.Name.SubTitle}
+                onChange={(e) =>
+                  setShareState({
+                    ...shareState,
+                    name: e.currentTarget.value,
+                  })
+                }
+              ></input>
+            </ListItem>
+
+            <ListItem
+              title={Locale.Settings.Share.Provider.Title}
+              subTitle={Locale.Settings.Share.Provider.SubTitle}
+            >
+              <Select
+                value={shareState.type}
+                onChange={(e) => {
+                  setShareState({
+                    ...shareState,
+                    type: e.target.value as ShareProviderType,
+                  });
+                }}
+              >
+                {Object.entries(ShareProviderType).map(([k, v]) => (
+                  <option value={v} key={k}>
+                    {k}
+                  </option>
+                ))}
+              </Select>
+            </ListItem>
+
+            {shareState.type === "Github" ? (
+              <>
+                <ListItem
+                  title={Locale.Settings.Share.Github.Owner.Title}
+                  subTitle={Locale.Settings.Share.Github.Owner.SubTitle}
+                >
+                  <input
+                    type="text"
+                    value={shareState.githubOwner}
+                    placeholder="owner"
+                    onChange={(e) =>
+                      setShareState({
+                        ...shareState,
+                        githubOwner: e.currentTarget.value,
+                      })
+                    }
+                  ></input>
+                </ListItem>
+
+                <ListItem
+                  title={Locale.Settings.Share.Github.Repo.Title}
+                  subTitle={Locale.Settings.Share.Github.Repo.SubTitle}
+                >
+                  <input
+                    type="text"
+                    value={shareState.githubRepo}
+                    placeholder="repository"
+                    onChange={(e) =>
+                      setShareState({
+                        ...shareState,
+                        githubRepo: e.currentTarget.value,
+                      })
+                    }
+                  ></input>
+                </ListItem>
+
+                <ListItem
+                  title={Locale.Settings.Share.Github.Token.Title}
+                  subTitle={Locale.Settings.Share.Github.Token.SubTitle}
+                >
+                  <PasswordInput
+                    value={shareState.githubToken}
+                    type="text"
+                    placeholder="token"
+                    onChange={(e) => {
+                      setShareState({
+                        ...shareState,
+                        githubToken: e.currentTarget.value,
+                      });
+                    }}
+                  />
+                </ListItem>
+              </>
+            ) : (
+              <></>
+            )}
+          </>
+        </List>
+      </Modal>
+    </div>
+  );
+}
+
 function DangerItems() {
   const chatStore = useChatStore();
   const appConfig = useAppConfig();
@@ -813,25 +1000,21 @@ export function Settings() {
   }
 
   const accessStore = useAccessStore();
-  // const usage = {
-  //   used: updateStore.used,
-  //   subscription: updateStore.subscription,
-  // };
-  // const [loadingUsage, setLoadingUsage] = useState(false);
-
   const enabledAccessControl = useMemo(
     () => accessStore.enabledAccessControl(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+  console.log("[Default provider system id]", nanoid());
 
   const promptStore = usePromptStore();
   const builtinCount = SearchService.count.builtin;
   const customCount = promptStore.getUserPrompts().length ?? 0;
   const [shouldShowPromptModal, setShowPromptModal] = useState(false);
   const [shouldShowEndpointModal, setShowEndpointModal] = useState(false);
+  const [editingProviderId, setEditingProviderId] = useState<string>();
 
-  const showUsage = accessStore.isAuthorized();
+  // const showUsage = accessStore.isAuthorized();
   useEffect(() => {
     // checks per minutes
     checkUpdate();
@@ -1151,7 +1334,7 @@ export function Settings() {
                     subTitle={Locale.Settings.Endpoint.SubTitle}
                   >
                     <IconButton
-                      icon={<EditIcon />}
+                      icon={<AddIcon />}
                       text={Locale.Settings.Button.Add}
                       onClick={() => setShowEndpointModal(true)}
                     />
@@ -1205,91 +1388,67 @@ export function Settings() {
               <ListItem
                 title={Locale.Settings.Share.Title}
                 subTitle={Locale.Settings.Share.SubTitle}
-              ></ListItem>
-              {
-                <>
-                  <ListItem
-                    title={Locale.Settings.Share.Provider.Title}
-                    subTitle={Locale.Settings.Share.Provider.SubTitle}
-                  >
-                    <Select
-                      value={accessStore.shareProvider}
-                      onChange={(e) => {
-                        accessStore.update(
-                          (access) =>
-                            (access.shareProvider = e.target
-                              .value as ShareProvider),
-                        );
-                      }}
-                    >
-                      {Object.entries(ShareProvider).map(([k, v]) => (
-                        <option value={v} key={k}>
-                          {k}
-                        </option>
-                      ))}
-                    </Select>
-                  </ListItem>
+              >
+                <IconButton
+                  icon={<AddIcon />}
+                  text={Locale.Settings.Button.Add}
+                  onClick={() => setEditingProviderId("")}
+                />
+              </ListItem>
 
-                  {accessStore.shareProvider === "Github" ? (
-                    <>
-                      <ListItem
-                        title={Locale.Settings.Share.Github.Owner.Title}
-                        subTitle={Locale.Settings.Share.Github.Owner.SubTitle}
-                      >
-                        <input
-                          type="text"
-                          value={accessStore.githubOwner}
-                          placeholder="owner"
-                          onChange={(e) =>
-                            accessStore.update(
-                              (access) =>
-                                (access.githubOwner = e.currentTarget.value),
-                            )
-                          }
-                        ></input>
-                      </ListItem>
-
-                      <ListItem
-                        title={Locale.Settings.Share.Github.Repo.Title}
-                        subTitle={Locale.Settings.Share.Github.Repo.SubTitle}
-                      >
-                        <input
-                          type="text"
-                          value={accessStore.githubRepo}
-                          placeholder="repository"
-                          onChange={(e) =>
-                            accessStore.update(
-                              (access) =>
-                                (access.githubRepo = e.currentTarget.value),
-                            )
-                          }
-                        ></input>
-                      </ListItem>
-
-                      <ListItem
-                        title={Locale.Settings.Share.Github.Token.Title}
-                        subTitle={Locale.Settings.Share.Github.Token.SubTitle}
-                      >
-                        <PasswordInput
-                          value={accessStore.githubToken}
-                          type="text"
-                          placeholder="token"
-                          onChange={(e) => {
-                            accessStore.update(
-                              (access) =>
-                                (access.githubToken = e.currentTarget.value),
-                            );
-                          }}
-                        />
-                      </ListItem>
-                    </>
-                  ) : (
-                    <></>
-                  )}
-                </>
-              }
+              <ListItem
+                title={Locale.Settings.Share.Default.Title}
+                subTitle={Locale.Settings.Share.Default.SubTitle}
+              >
+                <Select
+                  value={accessStore.defaultShareProviderId}
+                  onChange={(e) => {
+                    accessStore.update(
+                      (access) =>
+                        (access.defaultShareProviderId = e.target.value),
+                    );
+                  }}
+                >
+                  {accessStore.shareProviders.map((v) => (
+                    <option value={v.id} key={v.name}>
+                      {v.name}
+                    </option>
+                  ))}
+                </Select>
+              </ListItem>
             </>
           )}
+
+          {accessStore.shareProviders.map((v) => (
+            <ListItem
+              title={v.name}
+              subTitle={
+                v.type +
+                (v.type === ShareProviderType.Github
+                  ? ` - ${v.params.githubRepo}`
+                  : "")
+              }
+              key={v.id}
+            >
+              <div
+                style={{ display: "flex" }}
+                className={styles["user-prompt-buttons"]}
+              >
+                {v.id !== SYSTEM_SHARE_PROVIDER_ID && (
+                  <IconButton
+                    icon={<ClearIcon />}
+                    className={styles["user-prompt-button"]}
+                    onClick={() => accessStore.removeShareProvider(v.id!)}
+                  />
+                )}
+                <IconButton
+                  icon={<EditIcon />}
+                  className={styles["user-prompt-button"]}
+                  onClick={() => setEditingProviderId(v.id)}
+                />
+              </div>
+            </ListItem>
+          ))}
         </List>
 
         <List>
@@ -1309,6 +1468,13 @@ export function Settings() {
 
         {shouldShowEndpointModal && (
           <EndpointPromptModal onClose={() => setShowEndpointModal(false)} />
+        )}
+
+        {editingProviderId !== undefined && (
+          <EditSharedModal
+            id={editingProviderId!}
+            onClose={() => setEditingProviderId(undefined)}
+          />
         )}
 
         <DangerItems />

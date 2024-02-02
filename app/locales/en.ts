@@ -88,7 +88,7 @@ const en: LocaleType = {
     Download: "Download",
     MessageFromYou: "Message From You",
     MessageFromChatGPT: "Message From ChatGPT",
-    Share: "Share to ",
+    Share: "Share",
     Format: {
       Title: "Export Format",
       SubTitle: "Markdown or PNG Image",
@@ -400,8 +400,18 @@ const en: LocaleType = {
       SubTitle: "Share your conversation to Online Service",
 
       Provider: {
+        Name: {
+          Title: "Name",
+          SubTitle: "User-defined share name",
+        },
+
         Title: "Share Provider",
         SubTitle: "Select a Share Provider",
+      },
+
+      Default: {
+        Title: "Default Share Provider",
+        SubTitle: "Select a default share provider",
       },
 
       Github: {

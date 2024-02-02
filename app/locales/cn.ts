@@ -84,7 +84,7 @@ const cn = {
     Title: "分享聊天记录",
     Copy: "全部复制",
     Download: "下载文件",
-    Share: "分享到 ",
+    Share: "分享",
     MessageFromYou: "用户",
     MessageFromChatGPT: "ChatGPT",
     Format: {
@@ -276,7 +276,7 @@ const cn = {
 
       Default: {
         Title: "默认Endpoint",
-        Subtitle: "选择一个默人的Endpoint",
+        Subtitle: "选择一个默认的Endpoint",
       },
 
       List: {
@@ -394,8 +394,18 @@ const cn = {
       SubTitle: "分享你的对话记录到第三方服务",
 
       Provider: {
+        Name: {
+          Title: "名称",
+          SubTitle: "自定义分享名称",
+        },
+
         Title: "分享服务提供商",
         SubTitle: "选择一个第三方服务分享会话",
+      },
+
+      Default: {
+        Title: "默认的服务提供商",
+        SubTitle: "选择一个默认的服务提供商",
       },
 
       Github: {

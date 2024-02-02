@@ -81,11 +81,6 @@ export enum ModelProvider {
   GeminiPro = "GeminiPro",
 }
 
-export enum ShareProvider {
-  ShareGPT = "ShareGPT",
-  Github = "Github",
-}
-
 export const OpenaiPath = {
   ChatPath: "v1/chat/completions",
   UsagePath: "dashboard/billing/usage",
@@ -264,3 +259,4 @@ export const CHAT_PAGE_SIZE = 15;
 export const MAX_RENDER_MSG_COUNT = 45;
 
 export const SYSTEM_ENDPOINT_ID = "drmCBNGfpYKz8ZsSEopKJ";
+export const SYSTEM_SHARE_PROVIDER_ID = "A8bSBORnJDctOK6-sv-2u";
