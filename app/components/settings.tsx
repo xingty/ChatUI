@@ -1334,7 +1334,7 @@ export function Settings() {
                     subTitle={Locale.Settings.Endpoint.SubTitle}
                   >
                     <IconButton
-                      icon={<EditIcon />}
+                      icon={<AddIcon />}
                       text={Locale.Settings.Button.Add}
                       onClick={() => setShowEndpointModal(true)}
                     />
@@ -1390,7 +1390,7 @@ export function Settings() {
                 subTitle={Locale.Settings.Share.SubTitle}
               >
                 <IconButton
-                  icon={<EditIcon />}
+                  icon={<AddIcon />}
                   text={Locale.Settings.Button.Add}
                   onClick={() => setEditingProviderId("")}
                 />
