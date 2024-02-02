@@ -103,7 +103,6 @@ export const useAccessStore = createPersistStore(
   (set, get) => ({
     enabledAccessControl() {
       this.fetch();
-      this.initDefaultShareProvider();
 
       return get().needCode;
     },
