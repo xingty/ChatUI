@@ -3,9 +3,10 @@ import {
   DEFAULT_API_HOST,
   ServiceProvider,
   StoreKey,
-  ShareProvider,
+  // ShareProvider,
   ServiceProxy,
   SYSTEM_ENDPOINT_ID,
+  SYSTEM_SHARE_PROVIDER_ID,
 } from "../constant";
 import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
@@ -23,7 +24,7 @@ const DEFAULT_ACCESS_STATE = {
   useCustomConfig: false,
 
   provider: ServiceProvider.OpenAI,
-  shareProvider: ShareProvider.ShareGPT,
+  // shareProvider: ShareProvider.ShareGPT,
 
   // openai
   openaiUrl: DEFAULT_OPENAI_URL,
@@ -48,14 +49,17 @@ const DEFAULT_ACCESS_STATE = {
   customModels: "",
   defaultProvider: "" as ServiceProvider,
 
-  // share provider config
-  githubOwner: "",
-  githubRepo: "",
-  githubToken: "",
-
   endpoints: [] as Endpoint[],
   defaultEndpoint: "",
+
+  shareProviders: [] as ShareProvider[],
+  defaultShareProviderId: "",
 };
+
+export enum ShareProviderType {
+  ShareGPT = "ShareGPT",
+  Github = "Github",
+}
 
 export interface Endpoint {
   id: string;
@@ -68,6 +72,14 @@ export interface Endpoint {
   models: string;
   createdAt: number;
   type: string;
+}
+
+export interface ShareProvider {
+  id: string;
+  name: string;
+  type: ShareProviderType;
+  params: { [key: string]: string };
+  createdAt: number;
 }
 
 export const createEndpoint = (provider: ServiceProvider) => {
@@ -91,6 +103,7 @@ export const useAccessStore = createPersistStore(
   (set, get) => ({
     enabledAccessControl() {
       this.fetch();
+      this.initDefaultShareProvider();
 
       return get().needCode;
     },
@@ -218,6 +231,57 @@ export const useAccessStore = createPersistStore(
       }
 
       return endpoint;
+    },
+
+    getShareProvider(id: string) {
+      return get().shareProviders.find((v) => v.id === id);
+    },
+
+    addShareProvider(provider: ShareProvider) {
+      const shareProviders = get().shareProviders;
+      shareProviders.push(provider);
+      set(() => ({
+        shareProviders,
+      }));
+    },
+
+    updateShareProvider(provider: ShareProvider) {
+      const shareProviders = get().shareProviders;
+      const index = shareProviders.findIndex((v) => v.id === provider.id);
+      if (index === -1) {
+        return;
+      }
+      shareProviders[index] = provider;
+      set(() => ({
+        shareProviders,
+      }));
+    },
+
+    removeShareProvider(id: string) {
+      const shareProviders = get().shareProviders;
+      set(() => ({
+        shareProviders: shareProviders.filter((v) => v.id !== id),
+      }));
+    },
+
+    initDefaultShareProvider() {
+      const shareProviders = get().shareProviders;
+      if (shareProviders.length > 0) {
+        return;
+      }
+
+      set(() => ({
+        shareProviders: [
+          {
+            id: SYSTEM_SHARE_PROVIDER_ID,
+            name: "Default",
+            type: ShareProviderType.ShareGPT,
+            params: {},
+            createdAt: Date.now(),
+          },
+        ],
+        defaultShareProviderId: SYSTEM_SHARE_PROVIDER_ID,
+      }));
     },
   }),
   {
