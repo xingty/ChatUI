@@ -90,9 +90,6 @@ export async function requestOpenai(req: NextRequest) {
     duplex: "half",
     signal: controller.signal,
   };
-  console.log("[Headers]", fetchOptions.headers);
-
-  // throw new Error("Not implemented");
 
   // #1815 try to refuse gpt4 request
   if (serverConfig.customModels && req.body) {

@@ -1306,24 +1306,6 @@ export function Settings() {
         </List>
 
         <List>
-          {showAccessCode && (
-            <ListItem
-              title={Locale.Settings.Access.AccessCode.Title}
-              subTitle={Locale.Settings.Access.AccessCode.SubTitle}
-            >
-              <PasswordInput
-                value={accessStore.accessCode}
-                type="text"
-                placeholder={Locale.Settings.Access.AccessCode.Placeholder}
-                onChange={(e) => {
-                  accessStore.update(
-                    (access) => (access.accessCode = e.currentTarget.value),
-                  );
-                }}
-              />
-            </ListItem>
-          )}
-
           {!accessStore.hideUserApiKey && (
             <>
               {
@@ -1383,41 +1365,36 @@ export function Settings() {
         </List>
 
         <List id="Share">
-          {!accessStore.hideUserApiKey && (
-            <>
-              <ListItem
-                title={Locale.Settings.Share.Title}
-                subTitle={Locale.Settings.Share.SubTitle}
-              >
-                <IconButton
-                  icon={<AddIcon />}
-                  text={Locale.Settings.Button.Add}
-                  onClick={() => setEditingProviderId("")}
-                />
-              </ListItem>
+          <ListItem
+            title={Locale.Settings.Share.Title}
+            subTitle={Locale.Settings.Share.SubTitle}
+          >
+            <IconButton
+              icon={<AddIcon />}
+              text={Locale.Settings.Button.Add}
+              onClick={() => setEditingProviderId("")}
+            />
+          </ListItem>
 
-              <ListItem
-                title={Locale.Settings.Share.Default.Title}
-                subTitle={Locale.Settings.Share.Default.SubTitle}
-              >
-                <Select
-                  value={accessStore.defaultShareProviderId}
-                  onChange={(e) => {
-                    accessStore.update(
-                      (access) =>
-                        (access.defaultShareProviderId = e.target.value),
-                    );
-                  }}
-                >
-                  {accessStore.shareProviders.map((v) => (
-                    <option value={v.id} key={v.name}>
-                      {v.name}
-                    </option>
-                  ))}
-                </Select>
-              </ListItem>
-            </>
-          )}
+          <ListItem
+            title={Locale.Settings.Share.Default.Title}
+            subTitle={Locale.Settings.Share.Default.SubTitle}
+          >
+            <Select
+              value={accessStore.defaultShareProviderId}
+              onChange={(e) => {
+                accessStore.update(
+                  (access) => (access.defaultShareProviderId = e.target.value),
+                );
+              }}
+            >
+              {accessStore.shareProviders.map((v) => (
+                <option value={v.id} key={v.name}>
+                  {v.name}
+                </option>
+              ))}
+            </Select>
+          </ListItem>
 
           {accessStore.shareProviders.map((v) => (
             <ListItem
