@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSideConfig } from "../config/server";
-import { DEFAULT_MODELS, OPENAI_BASE_URL, GEMINI_BASE_URL } from "../constant";
+import {
+  DEFAULT_MODELS,
+  OPENAI_BASE_URL,
+  MEDIATYPE_EVENT_STREM,
+} from "../constant";
 import { collectModelTable } from "../utils/model";
 import { makeAzurePath } from "../azure";
 
@@ -72,18 +76,19 @@ export async function requestOpenai(req: NextRequest) {
   // }
 
   const fetchUrl = `${baseUrl}/${path}`;
+  const body = await req.json();
   const fetchOptions: RequestInit = {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
-      Accept: "text/event-stream",
+      Accept: req.headers.get("Accept") || "application/json",
       [authHeaderName]: authValue,
       ...(serverConfig.openaiOrgId && {
         "OpenAI-Organization": serverConfig.openaiOrgId,
       }),
     },
     method: req.method,
-    body: req.body,
+    body: JSON.stringify(body),
     // to fix #2485: https://stackoverflow.com/questions/55920957/cloudflare-worker-typeerror-one-time-use-body
     redirect: "manual",
     // @ts-ignore
@@ -128,6 +133,18 @@ export async function requestOpenai(req: NextRequest) {
     newHeaders.delete("www-authenticate");
     // to disable nginx buffering
     newHeaders.set("X-Accel-Buffering", "no");
+
+    // to fix the issue that the upstream server does not send the content-type header
+    const contentType = res.headers.get("Content-Type") || "";
+    if (!contentType.includes(MEDIATYPE_EVENT_STREM)) {
+      if (body.stream) {
+        console.log("[Appending missing content-type]", contentType);
+        newHeaders.set(
+          "Content-Type",
+          `${MEDIATYPE_EVENT_STREM}; ${contentType}`,
+        );
+      }
+    }
 
     // The latest version of the OpenAI API forced the content-encoding to be "br" in json response
     // So if the streaming is disabled, we need to remove the content-encoding header
