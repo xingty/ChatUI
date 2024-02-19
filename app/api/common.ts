@@ -86,6 +86,7 @@ export async function requestOpenai(req: NextRequest) {
       ...(serverConfig.openaiOrgId && {
         "OpenAI-Organization": serverConfig.openaiOrgId,
       }),
+      "User-Agent": "OpenAI/v1 PythonBindings/0.27.8",
     },
     method: req.method,
     body: JSON.stringify(body),
