@@ -30,6 +30,7 @@ export interface LLMConfig {
 }
 
 export interface ChatOptions {
+  session_id: string;
   messages: RequestMessage[];
   config: LLMConfig;
 

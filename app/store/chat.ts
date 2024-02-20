@@ -335,6 +335,7 @@ export const useChatStore = createPersistStore(
 
         // make request
         api.llm.chat({
+          session_id: session.id,
           messages: sendMessages,
           config: { ...modelConfig, stream: true },
           onUpdate(message) {
@@ -539,6 +540,7 @@ export const useChatStore = createPersistStore(
             }),
           );
           api.llm.chat({
+            session_id: session.id,
             messages: topicMessages,
             config: {
               model: getSummarizeModel(session.mask.modelConfig.model),
@@ -586,6 +588,7 @@ export const useChatStore = createPersistStore(
           modelConfig.sendMemory
         ) {
           api.llm.chat({
+            session_id: session.id,
             messages: toBeSummarizedMsgs.concat(
               createMessage({
                 role: "system",
