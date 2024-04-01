@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSideConfig } from "../config/server";
-import { DEFAULT_MODELS, OPENAI_BASE_URL, GEMINI_BASE_URL } from "../constant";
+import {
+  DEFAULT_MODELS,
+  OPENAI_BASE_URL,
+  MEDIATYPE_EVENT_STREM,
+} from "../constant";
 import { collectModelTable } from "../utils/model";
 import { makeAzurePath } from "../azure";
 
@@ -24,14 +28,20 @@ export async function requestOpenai(req: NextRequest) {
     authValue = req.headers.get("Authorization") ?? "";
     authHeaderName = "Authorization";
   }
+  console.log("[Auth] ", authValue, authHeaderName);
 
   let path = `${req.nextUrl.pathname}${req.nextUrl.search}`.replaceAll(
     "/api/openai/",
     "",
   );
 
+  let remoteHost = req.headers.get("x-api-service") ?? "";
+  console.log("[remoteHost]", remoteHost);
   let baseUrl =
-    serverConfig.azureUrl || serverConfig.baseUrl || OPENAI_BASE_URL;
+    remoteHost ||
+    serverConfig.azureUrl ||
+    serverConfig.baseUrl ||
+    OPENAI_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;
@@ -55,29 +65,31 @@ export async function requestOpenai(req: NextRequest) {
     10 * 60 * 1000,
   );
 
-  if (serverConfig.isAzure) {
-    if (!serverConfig.azureApiVersion) {
-      return NextResponse.json({
-        error: true,
-        message: `missing AZURE_API_VERSION in server env vars`,
-      });
-    }
-    path = makeAzurePath(path, serverConfig.azureApiVersion);
-  }
+  // if (serverConfig.isAzure) {
+  //   if (!serverConfig.azureApiVersion) {
+  //     return NextResponse.json({
+  //       error: true,
+  //       message: `missing AZURE_API_VERSION in server env vars`,
+  //     });
+  //   }
+  //   path = makeAzurePath(path, serverConfig.azureApiVersion);
+  // }
 
   const fetchUrl = `${baseUrl}/${path}`;
+  const body = await req.json();
   const fetchOptions: RequestInit = {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
-      Accept: req.headers.get("accept") || "*/*",
+      Accept: req.headers.get("Accept") || "application/json",
       [authHeaderName]: authValue,
       ...(serverConfig.openaiOrgId && {
         "OpenAI-Organization": serverConfig.openaiOrgId,
       }),
+      "User-Agent": "OpenAI/v1 PythonBindings/0.27.8",
     },
     method: req.method,
-    body: req.body,
+    body: JSON.stringify(body),
     // to fix #2485: https://stackoverflow.com/questions/55920957/cloudflare-worker-typeerror-one-time-use-body
     redirect: "manual",
     // @ts-ignore
@@ -122,6 +134,18 @@ export async function requestOpenai(req: NextRequest) {
     newHeaders.delete("www-authenticate");
     // to disable nginx buffering
     newHeaders.set("X-Accel-Buffering", "no");
+
+    // to fix the issue that the upstream server does not send the content-type header
+    const contentType = res.headers.get("Content-Type") || "";
+    if (!contentType.includes(MEDIATYPE_EVENT_STREM)) {
+      if (body.stream) {
+        console.log("[Appending missing content-type]", contentType);
+        newHeaders.set(
+          "Content-Type",
+          `${MEDIATYPE_EVENT_STREM}; ${contentType}`,
+        );
+      }
+    }
 
     // The latest version of the OpenAI API forced the content-encoding to be "br" in json response
     // So if the streaming is disabled, we need to remove the content-encoding header

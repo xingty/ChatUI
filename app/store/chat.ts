@@ -9,6 +9,7 @@ import {
   DEFAULT_SYSTEM_TEMPLATE,
   KnowledgeCutOffDate,
   ModelProvider,
+  ServiceProvider,
   StoreKey,
   SUMMARIZE_MODEL,
 } from "../constant";
@@ -18,6 +19,7 @@ import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
+import { useAccessStore } from "../store";
 
 export type ChatMessage = RequestMessage & {
   date: string;
@@ -187,6 +189,9 @@ export const useChatStore = createPersistStore(
           };
           // session.topic = mask.name;
           session.topic = Locale.Store.DefaultTopic;
+        } else {
+          session.mask.endpointId =
+            useAccessStore.getState().defaultEndpoint ?? "";
         }
 
         set((state) => ({
@@ -268,9 +273,26 @@ export const useChatStore = createPersistStore(
         get().summarizeSession();
       },
 
+      // getChantEndpoint(session: ChatSession) {
+      //   const accessStore = useAccessStore.getState();
+      //   const endpointId =
+      //     session.mask.endpointId ?? accessStore.defaultEndpoint;
+      //   const endpoints = accessStore.endpoints;
+
+      //   let endpoint =
+      //     endpoints.find((e) => e.id === endpointId) || endpoints[0];
+      //   console.log(["Default Endpoint"], endpoint);
+
+      //   return endpoint;
+      // },
+
       async onUserInput(content: string) {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
+        const endpointId = session.mask.endpointId || "";
+        const endpoint = useAccessStore
+          .getState()
+          .getEndpointOrDefault(endpointId);
 
         const userContent = fillTemplateWith(content, modelConfig);
         console.log("[User Input] after template: ", userContent);
@@ -304,14 +326,16 @@ export const useChatStore = createPersistStore(
         });
 
         var api: ClientApi;
-        if (modelConfig.model === "gemini-pro") {
-          api = new ClientApi(ModelProvider.GeminiPro);
+        if (endpoint?.provider === ServiceProvider.Google) {
+          api = new ClientApi(ModelProvider.GeminiPro, endpoint);
         } else {
-          api = new ClientApi(ModelProvider.GPT);
+          api = new ClientApi(ModelProvider.GPT, endpoint);
         }
+        console.log(["API"], api);
 
         // make request
         api.llm.chat({
+          session_id: session.id,
           messages: sendMessages,
           config: { ...modelConfig, stream: true },
           onUpdate(message) {
@@ -487,12 +511,16 @@ export const useChatStore = createPersistStore(
         const config = useAppConfig.getState();
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
+        const endpointId = session.mask.endpointId || "";
+        const endpoint = useAccessStore
+          .getState()
+          .getEndpointOrDefault(endpointId);
 
         var api: ClientApi;
         if (modelConfig.model === "gemini-pro") {
-          api = new ClientApi(ModelProvider.GeminiPro);
+          api = new ClientApi(ModelProvider.GeminiPro, endpoint);
         } else {
-          api = new ClientApi(ModelProvider.GPT);
+          api = new ClientApi(ModelProvider.GPT, endpoint);
         }
 
         // remove error messages if any
@@ -512,6 +540,7 @@ export const useChatStore = createPersistStore(
             }),
           );
           api.llm.chat({
+            session_id: session.id,
             messages: topicMessages,
             config: {
               model: getSummarizeModel(session.mask.modelConfig.model),
@@ -559,6 +588,7 @@ export const useChatStore = createPersistStore(
           modelConfig.sendMemory
         ) {
           api.llm.chat({
+            session_id: session.id,
             messages: toBeSummarizedMsgs.concat(
               createMessage({
                 role: "system",

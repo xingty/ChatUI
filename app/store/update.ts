@@ -9,7 +9,7 @@ import { createPersistStore } from "../utils/store";
 import ChatGptIcon from "../icons/chatgpt.png";
 import Locale from "../locales";
 import { use } from "react";
-import { useAppConfig } from ".";
+import { useAccessStore, useAppConfig } from ".";
 import { ClientApi } from "../client/api";
 
 const ONE_MINUTE = 60 * 1000;
@@ -134,6 +134,11 @@ export const useUpdateStore = createPersistStore(
     },
 
     async updateUsage(force = false) {
+      const endpoint = useAccessStore.getState().getDefaultEndpoint();
+      if (!endpoint) {
+        return;
+      }
+
       // only support openai for now
       const overOneMinute = Date.now() - get().lastUpdateUsage >= ONE_MINUTE;
       if (!overOneMinute && !force) return;
@@ -143,7 +148,7 @@ export const useUpdateStore = createPersistStore(
       }));
 
       try {
-        const api = new ClientApi(ModelProvider.GPT);
+        const api = new ClientApi(ModelProvider.GPT, endpoint);
         const usage = await api.llm.usage();
 
         if (usage) {

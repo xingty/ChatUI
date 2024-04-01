@@ -13,6 +13,7 @@ export const DEFAULT_API_HOST = `${DEFAULT_CORS_HOST}/api/proxy`;
 export const OPENAI_BASE_URL = "https://api.openai.com";
 
 export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/";
+export const MEDIATYPE_EVENT_STREM = "text/event-stream; charset=utf-8";
 
 export enum Path {
   Home = "/",
@@ -70,14 +71,15 @@ export enum ServiceProvider {
   Google = "Google",
 }
 
+export const ServiceProxy: Record<string, string> = {
+  OpenAI: "/api/openai",
+  Azure: "/api/openai",
+  Google: "/api/google",
+};
+
 export enum ModelProvider {
   GPT = "GPT",
   GeminiPro = "GeminiPro",
-}
-
-export enum ShareProvider {
-  ShareGPT = "ShareGPT",
-  Github = "Github",
 }
 
 export const OpenaiPath = {
@@ -114,6 +116,7 @@ export const KnowledgeCutOffDate: Record<string, string> = {
   default: "2021-09",
   "gpt-4-1106-preview": "2023-04",
   "gpt-4-vision-preview": "2023-04",
+  "gpt-4-0125-preview": "2023-11",
 };
 
 export const DEFAULT_MODELS = [
@@ -173,6 +176,15 @@ export const DEFAULT_MODELS = [
   },
   {
     name: "gpt-4-1106-preview",
+    available: true,
+    provider: {
+      id: "openai",
+      providerName: "OpenAI",
+      providerType: "openai",
+    },
+  },
+  {
+    name: "gpt-4-0125-preview",
     available: true,
     provider: {
       id: "openai",
@@ -256,3 +268,6 @@ export const DEFAULT_MODELS = [
 
 export const CHAT_PAGE_SIZE = 15;
 export const MAX_RENDER_MSG_COUNT = 45;
+
+export const SYSTEM_ENDPOINT_ID = "drmCBNGfpYKz8ZsSEopKJ";
+export const SYSTEM_SHARE_PROVIDER_ID = "A8bSBORnJDctOK6-sv-2u";

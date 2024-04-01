@@ -88,7 +88,7 @@ const en: LocaleType = {
     Download: "Download",
     MessageFromYou: "Message From You",
     MessageFromChatGPT: "Message From ChatGPT",
-    Share: "Share to ",
+    Share: "Share",
     Format: {
       Title: "Export Format",
       SubTitle: "Markdown or PNG Image",
@@ -253,6 +253,39 @@ const en: LocaleType = {
         Title: "Edit Prompt",
       },
     },
+    Endpoint: {
+      Title: "Endpoints",
+      SubTitle: "API Endpoints",
+
+      Default: {
+        Title: "Default Endpoint",
+        Subtitle: "Select a default endpoint",
+      },
+
+      Name: {
+        Title: "Endpoint Name",
+        SubTitle: "Named your endpoint",
+      },
+
+      Url: {
+        Title: "Endpoint URL",
+        SubTitle: "Endpoint Url,e.g. https://api.openai.com",
+      },
+
+      Key: {
+        Title: "API Key",
+        SubTitle: "API Key",
+      },
+
+      Version: {
+        Title: "API Version",
+        SubTitle: "API Version,e.g. v1(openai),2023-09-01-preview(azure)",
+      },
+
+      List: {
+        Title: "Endpoint List",
+      },
+    },
     HistoryCount: {
       Title: "Attached Messages Count",
       SubTitle: "Number of sent messages attached per request",
@@ -367,8 +400,18 @@ const en: LocaleType = {
       SubTitle: "Share your conversation to Online Service",
 
       Provider: {
+        Name: {
+          Title: "Name",
+          SubTitle: "User-defined share name",
+        },
+
         Title: "Share Provider",
         SubTitle: "Select a Share Provider",
+      },
+
+      Default: {
+        Title: "Default Share Provider",
+        SubTitle: "Select a default share provider",
       },
 
       Github: {
@@ -387,6 +430,9 @@ const en: LocaleType = {
           SubTitle: "Github AccessToken",
         },
       },
+    },
+    Button: {
+      Add: "Add",
     },
   },
   Store: {

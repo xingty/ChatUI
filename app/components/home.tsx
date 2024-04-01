@@ -27,7 +27,6 @@ import { SideBar } from "./sidebar";
 import { useAppConfig } from "../store/config";
 import { AuthPage } from "./auth";
 import { getClientConfig } from "../config/client";
-import { ClientApi } from "../client/api";
 import { useAccessStore } from "../store";
 
 export function Loading(props: { noLogo?: boolean }) {
@@ -167,32 +166,33 @@ function Screen() {
   );
 }
 
-export function useLoadData() {
-  const config = useAppConfig();
+// export function useLoadData() {
+//   const config = useAppConfig();
 
-  var api: ClientApi;
-  if (config.modelConfig.model === "gemini-pro") {
-    api = new ClientApi(ModelProvider.GeminiPro);
-  } else {
-    api = new ClientApi(ModelProvider.GPT);
-  }
-  useEffect(() => {
-    (async () => {
-      const models = await api.llm.models();
-      config.mergeModels(models);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-}
+//   var api: ClientApi;
+//   if (config.modelConfig.model === "gemini-pro") {
+//     api = new ClientApi(ModelProvider.GeminiPro);
+//   } else {
+//     api = new ClientApi(ModelProvider.GPT);
+//   }
+//   useEffect(() => {
+//     (async () => {
+//       const models = await api.llm.models();
+//       config.mergeModels(models);
+//     })();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, []);
+// }
 
 export function Home() {
   useSwitchTheme();
-  useLoadData();
+  // useLoadData();
   useHtmlLang();
 
   useEffect(() => {
     console.log("[Config] got config from build time", getClientConfig());
     useAccessStore.getState().fetch();
+    useAccessStore.getState().initDefaultShareProvider();
   }, []);
 
   if (!useHasHydrated()) {

@@ -34,6 +34,7 @@ import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
+import CloudSuccessIcon from "../icons/cloud-success.svg";
 
 import {
   ChatMessage,
@@ -414,6 +415,7 @@ export function ChatActions(props: {
   const config = useAppConfig();
   const navigate = useNavigate();
   const chatStore = useChatStore();
+  const accessStore = useAccessStore();
 
   // switch themes
   const theme = config.theme;
@@ -430,18 +432,28 @@ export function ChatActions(props: {
   const stopAll = () => ChatControllerPool.stopAll();
 
   // switch model
-  const currentModel = chatStore.currentSession().mask.modelConfig.model;
+  const currentModel = chatStore.currentSession().mask.modelConfig.model.trim();
   const allModels = useAllModels();
   const models = useMemo(
     () => allModels.filter((m) => m.available),
     [allModels],
   );
+
+  const endpointId = chatStore.currentSession().mask.endpointId || "";
+  const endpoint = accessStore.getEndpointOrDefault(endpointId);
+  const endpoints = accessStore.endpoints;
+
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showEndpointSelector, setShowEndpointSelector] = useState(false);
 
   useEffect(() => {
     // if current model is not available
     // switch to first available model
-    const isUnavaliableModel = !models.some((m) => m.name === currentModel);
+    const isUnavaliableModel = !models.some(
+      (m) => m.name.trim() === currentModel,
+    );
+    const model = models.find((m) => m.name.trim() === currentModel);
+    console.log(["Model debug"], isUnavaliableModel, currentModel, models);
     if (isUnavaliableModel && models.length > 0) {
       const nextModel = models[0].name as ModelType;
       chatStore.updateCurrentSession(
@@ -450,6 +462,15 @@ export function ChatActions(props: {
       showToast(nextModel);
     }
   }, [chatStore, currentModel, models]);
+
+  function handleShowEndpoint() {
+    if (accessStore.endpoints.length <= 0) {
+      showToast("No endpoint found, please add an endpoint first.");
+      return;
+    }
+
+    setShowEndpointSelector(true);
+  }
 
   return (
     <div className={styles["chat-input-actions"]}>
@@ -526,6 +547,12 @@ export function ChatActions(props: {
         icon={<RobotIcon />}
       />
 
+      <ChatAction
+        onClick={() => handleShowEndpoint()}
+        text={endpoint?.name || ""}
+        icon={<CloudSuccessIcon />}
+      />
+
       {showModelSelector && (
         <Selector
           defaultSelectedValue={currentModel}
@@ -541,6 +568,24 @@ export function ChatActions(props: {
               session.mask.syncGlobalConfig = false;
             });
             showToast(s[0]);
+          }}
+        />
+      )}
+
+      {showEndpointSelector && (
+        <Selector
+          defaultSelectedValue={endpoint?.id || ""}
+          items={endpoints.map((e) => ({
+            title: e.name,
+            value: e.id,
+          }))}
+          onClose={() => setShowEndpointSelector(false)}
+          onSelection={(s) => {
+            if (s.length === 0) return;
+            chatStore.updateCurrentSession((session) => {
+              session.mask.endpointId = s[0] as string;
+              session.mask.syncGlobalConfig = false;
+            });
           }}
         />
       )}
@@ -886,6 +931,9 @@ function _Chat() {
     context.push(copiedHello);
   }
 
+  const endpointId = session.mask.endpointId || "";
+  const endpoint = accessStore.getEndpointOrDefault(endpointId);
+
   // preview messages
   const renderMessages = useMemo(() => {
     return context
@@ -1072,7 +1120,8 @@ function _Chat() {
             {!session.topic ? DEFAULT_TOPIC : session.topic}
           </div>
           <div className="window-header-sub-title">
-            {Locale.Chat.SubTitle(session.messages.length)}
+            {Locale.Chat.SubTitle(session.messages.length)} | {endpoint?.name} |{" "}
+            {session.mask.modelConfig.model}
           </div>
         </div>
         <div className="window-actions">

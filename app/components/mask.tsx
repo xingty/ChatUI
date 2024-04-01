@@ -21,6 +21,7 @@ import {
   ModelType,
   useAppConfig,
   useChatStore,
+  useAccessStore,
 } from "../store";
 import { ROLES } from "../client/api";
 import {
@@ -94,6 +95,7 @@ export function MaskConfig(props: {
   };
 
   const globalConfig = useAppConfig();
+  const accessStore = useAccessStore();
 
   return (
     <>
@@ -197,6 +199,25 @@ export function MaskConfig(props: {
             ></input>
           </ListItem>
         ) : null}
+      </List>
+
+      <List>
+        <ListItem title="Endpoint" subTitle="Select an endpoint">
+          <Select
+            value={props.mask.endpointId}
+            onChange={(e) => {
+              props.updateMask((mask) => {
+                mask.endpointId = e.target.value;
+              });
+            }}
+          >
+            {accessStore.endpoints.map((v) => (
+              <option value={v.id} key={v.name}>
+                {v.name}
+              </option>
+            ))}
+          </Select>
+        </ListItem>
       </List>
 
       <List>

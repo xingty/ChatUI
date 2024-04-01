@@ -3,12 +3,16 @@ import {
   DEFAULT_API_HOST,
   ServiceProvider,
   StoreKey,
-  ShareProvider,
+  // ShareProvider,
+  ServiceProxy,
+  SYSTEM_ENDPOINT_ID,
+  SYSTEM_SHARE_PROVIDER_ID,
 } from "../constant";
 import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
 import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
+import { nanoid } from "nanoid";
 
 let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 
@@ -20,7 +24,7 @@ const DEFAULT_ACCESS_STATE = {
   useCustomConfig: false,
 
   provider: ServiceProvider.OpenAI,
-  shareProvider: ShareProvider.ShareGPT,
+  // shareProvider: ShareProvider.ShareGPT,
 
   // openai
   openaiUrl: DEFAULT_OPENAI_URL,
@@ -43,11 +47,54 @@ const DEFAULT_ACCESS_STATE = {
   disableGPT4: false,
   disableFastLink: false,
   customModels: "",
+  defaultProvider: "" as ServiceProvider,
 
-  // share provider config
-  githubOwner: "",
-  githubRepo: "",
-  githubToken: "",
+  endpoints: [] as Endpoint[],
+  defaultEndpoint: "",
+
+  shareProviders: [] as ShareProvider[],
+  defaultShareProviderId: "",
+};
+
+export enum ShareProviderType {
+  ShareGPT = "ShareGPT",
+  Github = "Github",
+}
+
+export interface Endpoint {
+  id: string;
+  name: string;
+  provider: ServiceProvider;
+  apiUrl: string;
+  proxyUrl: string;
+  apiVersion: string;
+  apiKey: string;
+  models: string;
+  createdAt: number;
+  type: string;
+}
+
+export interface ShareProvider {
+  id: string;
+  name: string;
+  type: ShareProviderType;
+  params: { [key: string]: string };
+  createdAt: number;
+}
+
+export const createEndpoint = (provider: ServiceProvider) => {
+  return {
+    id: nanoid(),
+    name: "",
+    provider: provider,
+    apiUrl: "",
+    proxyUrl: ServiceProxy[provider] ?? "",
+    apiVersion: "",
+    apiKey: "",
+    models: "",
+    createdAt: 0,
+    type: "user",
+  };
 };
 
 export const useAccessStore = createPersistStore(
@@ -97,7 +144,24 @@ export const useAccessStore = createPersistStore(
         .then((res) => res.json())
         .then((res: DangerConfig) => {
           console.log("[Config] got config from server", res);
-          set(() => ({ ...res }));
+          const endpoints = get().endpoints;
+          const endpoint = createEndpoint(res.defaultProvider);
+          endpoint.name = "System";
+          endpoint.id = SYSTEM_ENDPOINT_ID;
+          endpoint.apiVersion = res.defaultAPIVersion;
+          endpoint.type = "system";
+
+          const index = endpoints.findIndex((v) => v.id === SYSTEM_ENDPOINT_ID);
+          if (index !== -1) {
+            endpoints[index] = endpoint;
+          } else {
+            endpoints.push(endpoint);
+          }
+
+          set(() => ({
+            ...res,
+            endpoints,
+          }));
         })
         .catch(() => {
           console.error("[Config] failed to fetch config");
@@ -105,6 +169,118 @@ export const useAccessStore = createPersistStore(
         .finally(() => {
           fetchState = 2;
         });
+    },
+
+    getEndpoint(id: string) {
+      return get().endpoints.find((v) => v.id === id);
+    },
+
+    removeEndpoint(id: string) {
+      const endpoints = get().endpoints;
+      set(() => ({
+        endpoints: endpoints.filter((v) => v.id !== id),
+      }));
+    },
+
+    addEndpoint(endpoint: Endpoint) {
+      const endpoints = get().endpoints;
+      endpoints.push(endpoint);
+      set(() => ({
+        endpoints,
+      }));
+    },
+
+    addOrUpdateEndpoint(endpoint: Endpoint) {
+      const endpoints = get().endpoints;
+      const index = endpoints.findIndex((v) => v.id === endpoint.id);
+      if (index === -1) {
+        endpoints.push(endpoint);
+      } else {
+        endpoints[index] = endpoint;
+      }
+
+      let defaultEndpoint = get().defaultEndpoint;
+      const e = endpoints.find((v) => v.id === defaultEndpoint);
+      if (!e) {
+        defaultEndpoint = endpoints[0]?.id || endpoint.id;
+      }
+
+      set(() => ({
+        endpoints,
+        defaultEndpoint,
+      }));
+    },
+
+    getDefaultEndpoint() {
+      const id = get().defaultEndpoint;
+      const endpoints = get().endpoints;
+      const e = endpoints.find((v) => v.id === id);
+      if (e) {
+        return e;
+      }
+
+      return endpoints[0];
+    },
+
+    getEndpointOrDefault(endpointId: string) {
+      const endpoints = get().endpoints;
+      let endpoint = endpoints.find((e) => e.id === endpointId);
+      if (!!!endpoint) {
+        return this.getDefaultEndpoint();
+      }
+
+      return endpoint;
+    },
+
+    getShareProvider(id: string) {
+      return get().shareProviders.find((v) => v.id === id);
+    },
+
+    addShareProvider(provider: ShareProvider) {
+      const shareProviders = get().shareProviders;
+      shareProviders.push(provider);
+      set(() => ({
+        shareProviders,
+      }));
+    },
+
+    updateShareProvider(provider: ShareProvider) {
+      const shareProviders = get().shareProviders;
+      const index = shareProviders.findIndex((v) => v.id === provider.id);
+      if (index === -1) {
+        return;
+      }
+      shareProviders[index] = provider;
+      set(() => ({
+        shareProviders,
+      }));
+    },
+
+    removeShareProvider(id: string) {
+      const shareProviders = get().shareProviders;
+      set(() => ({
+        shareProviders: shareProviders.filter((v) => v.id !== id),
+      }));
+    },
+
+    initDefaultShareProvider() {
+      const shareProviders = get().shareProviders;
+      if (shareProviders.length > 0) {
+        return;
+      }
+
+      set(() => ({
+        shareProviders: [
+          {
+            id: SYSTEM_SHARE_PROVIDER_ID,
+            name: "Default",
+            type: ShareProviderType.ShareGPT,
+            params: {},
+            createdAt: Date.now(),
+          },
+        ],
+        defaultShareProviderId: SYSTEM_SHARE_PROVIDER_ID,
+      }));
     },
   }),
   {

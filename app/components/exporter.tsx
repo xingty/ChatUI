@@ -5,6 +5,8 @@ import {
   useAppConfig,
   useChatStore,
   useAccessStore,
+  ShareProviderType,
+  ShareProvider,
 } from "../store";
 import Locale from "../locales";
 import styles from "./exporter.module.scss";
@@ -16,6 +18,7 @@ import {
   showImageModal,
   showModal,
   showToast,
+  Selector,
 } from "./ui-lib";
 import { IconButton } from "./button";
 import { copyToClipboard, downloadAs, useMobileScreen } from "../utils";
@@ -39,13 +42,15 @@ import { DEFAULT_MASK_AVATAR } from "../store/mask";
 import { prettyObject } from "../utils/format";
 import { EXPORT_MESSAGE_CLASS_NAME, ModelProvider } from "../constant";
 import { getClientConfig } from "../config/client";
-import { ClientApi } from "../client/api";
+import { ShareApi } from "../client/share";
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
 });
 
 export function ExportMessageModal(props: { onClose: () => void }) {
+  const accessStore = useAccessStore();
+
   return (
     <div className="modal-mask">
       <Modal
@@ -153,7 +158,7 @@ export function MessageExporter() {
   type ExportFormat = (typeof formats)[number];
 
   const [exportConfig, setExportConfig] = useState({
-    format: "image" as ExportFormat,
+    format: "text" as ExportFormat,
     includeContext: true,
   });
 
@@ -310,57 +315,52 @@ export function PreviewActions(props: {
 }) {
   const [loading, setLoading] = useState(false);
   const [shouldExport, setShouldExport] = useState(false);
-  const config = useAppConfig();
+  // const config = useAppConfig();
   const chatStore = useChatStore();
   const accessStore = useAccessStore();
   const session = chatStore.currentSession();
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(
+    accessStore.defaultShareProviderId,
+  );
+  const shareProviders = accessStore.shareProviders;
+  const api: ShareApi = new ShareApi();
+
+  const show = (result: string) => {
+    showModal({
+      title: Locale.Export.Share,
+      children: [
+        <input
+          type="text"
+          value={result}
+          key="input"
+          style={{
+            width: "100%",
+            maxWidth: "unset",
+          }}
+          readOnly
+          onClick={(e) => e.currentTarget.select()}
+        ></input>,
+      ],
+      actions: [
+        <IconButton
+          icon={<CopyIcon />}
+          text={Locale.Chat.Actions.Copy}
+          key="copy"
+          onClick={() => copyToClipboard(result)}
+        />,
+      ],
+    });
+  };
 
   const onRenderMsgs = (msgs: ChatMessage[]) => {
     setShouldExport(false);
 
-    var api: ClientApi;
-    if (config.modelConfig.model === "gemini-pro") {
-      api = new ClientApi(ModelProvider.GeminiPro);
-    } else {
-      api = new ClientApi(ModelProvider.GPT);
-    }
-
-    const show = (result: string) => {
-      showModal({
-        title: Locale.Export.Share + accessStore.provider,
-        children: [
-          <input
-            type="text"
-            value={result}
-            key="input"
-            style={{
-              width: "100%",
-              maxWidth: "unset",
-            }}
-            readOnly
-            onClick={(e) => e.currentTarget.select()}
-          ></input>,
-        ],
-        actions: [
-          <IconButton
-            icon={<CopyIcon />}
-            text={Locale.Chat.Actions.Copy}
-            key="copy"
-            onClick={() => copyToClipboard(result)}
-          />,
-        ],
-      });
-    };
-
-    const shareToShareGPT = () => {
+    const shareToShareGPT = async () => {
       api
         .shareToShareGPT(msgs)
         .then((res) => {
           if (!res) return;
           show(res);
-          // setTimeout(() => {
-          //   window.open(res, "_blank");
-          // }, 800);
         })
         .catch((e) => {
           console.error("[Share]", e);
@@ -369,8 +369,23 @@ export function PreviewActions(props: {
         .finally(() => setLoading(false));
     };
 
+    shareToShareGPT();
+  };
+
+  const share = async () => {
+    if (!props.messages?.length) {
+      return;
+    }
+
+    const provider = shareProviders.find((e) => e.id === selectedProviderId);
+    console.log(provider);
+
+    if (!props.messages?.length || provider === undefined) {
+      return;
+    }
+
     const shareToGithub = async () => {
-      const { githubRepo, githubOwner, githubToken } = accessStore;
+      const { githubRepo, githubOwner, githubToken } = provider.params;
       try {
         const issue = await api.getGithubIssue(
           githubOwner,
@@ -378,6 +393,8 @@ export function PreviewActions(props: {
           githubToken,
           session.id,
         );
+        console.log("[issue]", issue, session.id);
+
         let url = await api.createOrUpdateIssue(
           githubOwner,
           githubRepo,
@@ -396,18 +413,30 @@ export function PreviewActions(props: {
       }
     };
 
-    accessStore.shareProvider == "Github" ? shareToGithub() : shareToShareGPT();
-  };
-
-  const share = async () => {
-    if (props.messages?.length) {
-      setLoading(true);
+    setLoading(true);
+    if (provider.type === ShareProviderType.ShareGPT) {
       setShouldExport(true);
+    } else {
+      shareToGithub();
     }
   };
 
   return (
     <>
+      <List>
+        <ListItem title="Share Provider" subTitle="Select a share provider">
+          <Select
+            value={selectedProviderId}
+            onChange={(e) => setSelectedProviderId(e.target.value)}
+          >
+            {accessStore.shareProviders.map((v) => (
+              <option key={v.name} value={v.id}>
+                {`${v.name} - ${v.type}`}
+              </option>
+            ))}
+          </Select>
+        </ListItem>
+      </List>
       <div className={styles["preview-actions"]}>
         {props.showCopy && (
           <IconButton
@@ -426,7 +455,7 @@ export function PreviewActions(props: {
           onClick={props.download}
         ></IconButton>
         <IconButton
-          text={Locale.Export.Share + accessStore.shareProvider}
+          text={Locale.Export.Share}
           bordered
           shadow
           icon={loading ? <LoadingIcon /> : <ShareIcon />}

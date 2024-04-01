@@ -6,7 +6,7 @@ import {
   REQUEST_TIMEOUT_MS,
   ServiceProvider,
 } from "@/app/constant";
-import { useAccessStore, useAppConfig, useChatStore } from "@/app/store";
+import { useAppConfig, useChatStore, Endpoint } from "@/app/store";
 
 import { ChatOptions, getHeaders, LLMApi, LLMModel, LLMUsage } from "../api";
 import Locale from "../../locales";
@@ -16,7 +16,6 @@ import {
 } from "@fortaine/fetch-event-source";
 import { prettyObject } from "@/app/utils/format";
 import { getClientConfig } from "@/app/config/client";
-import { makeAzurePath } from "@/app/azure";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -29,34 +28,38 @@ export interface OpenAIListModelResponse {
 
 export class ChatGPTApi implements LLMApi {
   private disableListModels = true;
+  private endpoint: Endpoint;
+
+  constructor(endpoint: Endpoint) {
+    this.endpoint = endpoint;
+  }
 
   path(path: string): string {
-    const accessStore = useAccessStore.getState();
-
-    const isAzure = accessStore.provider === ServiceProvider.Azure;
-
-    if (isAzure && !accessStore.isValidAzure()) {
-      throw Error(
-        "incomplete azure config, please check it in your settings page",
-      );
+    path = path.replaceAll("v1/", "");
+    let endpoint = this.endpoint;
+    console.log("[Request] endpoint: ", endpoint);
+    if (!endpoint) {
+      throw Error("no endpoint found");
     }
 
-    let baseUrl = isAzure ? accessStore.azureUrl : accessStore.openaiUrl;
+    const isAzure = endpoint.provider === ServiceProvider.Azure;
+    const isApp = !!getClientConfig()?.isApp;
 
-    if (baseUrl.length === 0) {
-      const isApp = !!getClientConfig()?.isApp;
-      baseUrl = isApp ? DEFAULT_API_HOST : ApiPath.OpenAI;
-    }
-
+    let baseUrl = isApp ? endpoint.apiUrl : endpoint.proxyUrl;
     if (baseUrl.endsWith("/")) {
       baseUrl = baseUrl.slice(0, baseUrl.length - 1);
     }
+
     if (!baseUrl.startsWith("http") && !baseUrl.startsWith(ApiPath.OpenAI)) {
       baseUrl = "https://" + baseUrl;
     }
 
     if (isAzure) {
-      path = makeAzurePath(path, accessStore.azureApiVersion);
+      path += `${path.includes("?") ? "&" : "?"}api-version=${
+        endpoint.apiVersion
+      }`;
+    } else {
+      path = `${endpoint.apiVersion}/${path}`;
     }
 
     return [baseUrl, path].join("/");
@@ -81,6 +84,7 @@ export class ChatGPTApi implements LLMApi {
     };
 
     const requestPayload = {
+      session_id: options.session_id,
       messages,
       stream: options.config.stream,
       model: modelConfig.model,
@@ -99,12 +103,13 @@ export class ChatGPTApi implements LLMApi {
     options.onController?.(controller);
 
     try {
+      const endpoint = this.endpoint;
       const chatPath = this.path(OpenaiPath.ChatPath);
       const chatPayload = {
         method: "POST",
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
-        headers: getHeaders(),
+        headers: getHeaders(endpoint),
       };
 
       // make a fetch request
@@ -245,6 +250,7 @@ export class ChatGPTApi implements LLMApi {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startDate = formatDate(startOfMonth);
     const endDate = formatDate(new Date(Date.now() + ONE_DAY));
+    const endpoint = this.endpoint;
 
     const [used, subs] = await Promise.all([
       fetch(
@@ -253,12 +259,12 @@ export class ChatGPTApi implements LLMApi {
         ),
         {
           method: "GET",
-          headers: getHeaders(),
+          headers: getHeaders(endpoint),
         },
       ),
       fetch(this.path(OpenaiPath.SubsPath), {
         method: "GET",
-        headers: getHeaders(),
+        headers: getHeaders(endpoint),
       }),
     ]);
 
@@ -305,10 +311,11 @@ export class ChatGPTApi implements LLMApi {
       return DEFAULT_MODELS.slice();
     }
 
+    const endpoint = this.endpoint;
     const res = await fetch(this.path(OpenaiPath.ListModelPath), {
       method: "GET",
       headers: {
-        ...getHeaders(),
+        ...getHeaders(endpoint),
       },
     });
 

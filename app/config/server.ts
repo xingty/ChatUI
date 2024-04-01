@@ -1,5 +1,5 @@
 import md5 from "spark-md5";
-import { DEFAULT_MODELS } from "../constant";
+import { DEFAULT_MODELS, ServiceProvider } from "../constant";
 
 declare global {
   namespace NodeJS {
@@ -75,6 +75,15 @@ export const getServerSideConfig = () => {
     `[Server Config] using ${randomIndex + 1} of ${apiKeys.length} api key`,
   );
 
+  let defaultProvider = ServiceProvider.OpenAI;
+  let defaultAPIVersion = "v1";
+  if (isAzure) {
+    defaultProvider = ServiceProvider.Azure;
+    defaultAPIVersion = process.env.AZURE_API_VERSION || "2023-03-15-preview";
+  } else if (isGoogle) {
+    defaultAPIVersion = ServiceProvider.Google;
+  }
+
   return {
     baseUrl: process.env.BASE_URL,
     apiKey,
@@ -101,5 +110,7 @@ export const getServerSideConfig = () => {
     hideBalanceQuery: !process.env.ENABLE_BALANCE_QUERY,
     disableFastLink: !!process.env.DISABLE_FAST_LINK,
     customModels,
+    defaultProvider: defaultProvider,
+    defaultAPIVersion: defaultAPIVersion,
   };
 };

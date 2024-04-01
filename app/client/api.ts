@@ -5,9 +5,10 @@ import {
   ModelProvider,
   ServiceProvider,
 } from "../constant";
-import { ChatMessage, ModelType, useAccessStore, useChatStore } from "../store";
+import { ChatMessage, ModelType, Endpoint, useAccessStore } from "../store";
 import { ChatGPTApi } from "./platforms/openai";
 import { GeminiProApi } from "./platforms/google";
+import { endianness } from "os";
 export const ROLES = ["system", "user", "assistant"] as const;
 export type MessageRole = (typeof ROLES)[number];
 
@@ -29,6 +30,7 @@ export interface LLMConfig {
 }
 
 export interface ChatOptions {
+  session_id: string;
   messages: RequestMessage[];
   config: LLMConfig;
 
@@ -85,12 +87,12 @@ interface ChatProvider {
 export class ClientApi {
   public llm: LLMApi;
 
-  constructor(provider: ModelProvider = ModelProvider.GPT) {
+  constructor(provider: ModelProvider = ModelProvider.GPT, endpoint: Endpoint) {
     if (provider === ModelProvider.GeminiPro) {
-      this.llm = new GeminiProApi();
+      this.llm = new GeminiProApi(endpoint);
       return;
     }
-    this.llm = new ChatGPTApi();
+    this.llm = new ChatGPTApi(endpoint);
   }
 
   config() {}
@@ -98,133 +100,36 @@ export class ClientApi {
   prompts() {}
 
   masks() {}
-
-  async getGithubIssue(
-    owner: string,
-    repo: string,
-    token: string,
-    label: string,
-  ) {
-    const requestUrl = `/sharegithub/${owner}/${repo}?labels=${label}&state=open`;
-    const res = await fetch(requestUrl, {
-      headers: {
-        Accept: "application/json",
-        Authorization: "Bearer " + token,
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-      method: "GET",
-    });
-
-    const resJson = await res.json();
-    console.log("[GetShare]", resJson);
-    if (resJson.length) {
-      return {
-        id: resJson[0].number,
-        url: resJson[0].html_url,
-      };
-    }
-
-    return {};
-  }
-
-  async shareToShareGPT(
-    messages: ChatMessage[],
-    avatarUrl: string | null = null,
-  ) {
-    const msgs = messages.map((m) => ({
-      from: m.role === "user" ? "human" : "gpt",
-      value: m.content,
-    }));
-
-    console.log("[Share]", messages, msgs);
-    const clientConfig = getClientConfig();
-    const proxyUrl = "/sharegpt";
-    const rawUrl = "https://sharegpt.com/api/conversations";
-    const shareUrl = clientConfig?.isApp ? rawUrl : proxyUrl;
-    const res = await fetch(shareUrl, {
-      body: JSON.stringify({
-        avatarUrl,
-        items: msgs,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    });
-
-    const resJson = await res.json();
-    console.log("[Share]", resJson);
-    if (resJson.id) {
-      return `https://shareg.pt/${resJson.id}`;
-    }
-  }
-
-  async createOrUpdateIssue(
-    owner: string,
-    repo: string,
-    token: string,
-    isn: string,
-    session: any,
-  ) {
-    const messages: ChatMessage[] = session.messages;
-    const sid = session.id;
-    const title = session.topic;
-    const content = messages
-      .map((m) => `## ${m.role}\n${m.content.trim()}\n`)
-      .join("\n");
-    console.log("[ShareToGithub]", messages);
-
-    const clientConfig = getClientConfig();
-    const proxyUrl = "/sharegithub/xingty/assets";
-    const rawUrl = `https://api.github.com/repos/${owner}/${repo}/issues`;
-    let shareUrl = clientConfig?.isApp ? rawUrl : proxyUrl;
-    const headers = {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-      "X-GitHub-Api-Version": "2022-11-28",
-    };
-    const body = JSON.stringify({
-      title: title,
-      body: content,
-      labels: [sid],
-    });
-    let method = "POST";
-    if (isn) {
-      method = "PATCH";
-      shareUrl = `${shareUrl}/${isn}`;
-    }
-
-    const res = await fetch(shareUrl, {
-      body: body,
-      headers: headers,
-      method: method,
-    });
-
-    const resJson = await res.json();
-    console.log("[Share]", resJson);
-    if (resJson.html_url) {
-      return resJson.html_url;
-    }
-  }
 }
 
-export function getHeaders() {
+export function getHeaders(endpoint?: Endpoint) {
   const accessStore = useAccessStore.getState();
+  // const endpoint = accessStore.getDefaultEndpoint();
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "x-requested-with": "XMLHttpRequest",
     Accept: "application/json",
+    "x-api-service": endpoint?.apiUrl || "",
+    "x-api-provider": endpoint?.provider || "OpenAI",
+    "x-api-version": endpoint?.apiVersion || "",
   };
-  const modelConfig = useChatStore.getState().currentSession().mask.modelConfig;
-  const isGoogle = modelConfig.model === "gemini-pro";
-  const isAzure = accessStore.provider === ServiceProvider.Azure;
+
+  if (!!!endpoint) {
+    return headers;
+  }
+
+  // const modelConfig = useChatStore.getState().currentSession().mask.modelConfig;
+  // const isGoogle = modelConfig.model === "gemini-pro";
+  // const isAzure = accessStore.provider === ServiceProvider.Azure;
+  const isAzure = endpoint?.provider === ServiceProvider.Azure;
   const authHeader = isAzure ? "api-key" : "Authorization";
-  const apiKey = isGoogle
-    ? accessStore.googleApiKey
-    : isAzure
-    ? accessStore.azureApiKey
-    : accessStore.openaiApiKey;
+  // const apiKey = isGoogle
+  //   ? accessStore.googleApiKey
+  //   : isAzure
+  //   ? accessStore.azureApiKey
+  //   : accessStore.openaiApiKey;
+  const apiKey = endpoint?.apiKey || "";
 
   const makeBearer = (s: string) => `${isAzure ? "" : "Bearer "}${s.trim()}`;
   const validString = (x: string) => x && x.length > 0;
