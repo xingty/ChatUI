@@ -1,5 +1,5 @@
 import { getClientConfig } from "../config/client";
-import { ChatMessage } from "../store";
+import { ChatMessage, ChatSession, useAccessStore } from "../store";
 
 export class ShareApi {
   async getGithubIssue(
@@ -68,7 +68,7 @@ export class ShareApi {
     repo: string,
     token: string,
     isn: string,
-    session: any,
+    session: ChatSession,
   ) {
     const messages: ChatMessage[] = session.messages;
     const sid = session.id;
@@ -77,6 +77,7 @@ export class ShareApi {
       .map((m) => `## ${m.role}\n${m.content.trim()}\n`)
       .join("\n");
     console.log("[ShareToGithub]", messages);
+    const systemInfo = extraSystemInfo(session);
 
     const clientConfig = getClientConfig();
     const proxyUrl = `/sharegithub/${owner}/${repo}`;
@@ -90,7 +91,7 @@ export class ShareApi {
     };
     const body = JSON.stringify({
       title: title,
-      body: content,
+      body: `${systemInfo}\n\n${content}`,
       labels: [sid],
     });
     let method = "POST";
@@ -113,4 +114,29 @@ export class ShareApi {
       return resJson.html_url;
     }
   }
+}
+
+function extraSystemInfo(session: ChatSession) {
+  const endpointId = session.mask.endpointId || "";
+  const endpoint = useAccessStore.getState().getEndpoint(endpointId);
+  const name = endpoint?.name || "None";
+  const modelConfig = session.mask.modelConfig;
+  const model = modelConfig.model.toLowerCase();
+  const url = endpoint?.apiUrl || "None";
+  let provider = endpoint?.provider || "unknown";
+  if (
+    model.includes("precise") ||
+    model.includes("creative") ||
+    model.includes("balanced")
+  ) {
+    provider = "Bing";
+  } else if (model.includes("claude")) {
+    provider = "Claude";
+  }
+
+  if (provider === "unknown" && model.includes("gpt")) {
+    provider = "OpenAI";
+  }
+
+  return `## System\nEndpoint: ${name}\nURL: ${url}\nProvider: ${provider}\nModel: ${modelConfig.model}`;
 }
