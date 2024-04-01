@@ -4,6 +4,7 @@ import {
   DEFAULT_MODELS,
   OPENAI_BASE_URL,
   MEDIATYPE_EVENT_STREM,
+  GEMINI_BASE_URL,
 } from "../constant";
 import { collectModelTable } from "../utils/model";
 import { makeAzurePath } from "../azure";
@@ -53,10 +54,6 @@ export async function requestOpenai(req: NextRequest) {
 
   console.log("[Proxy] ", path);
   console.log("[Base Url]", baseUrl);
-  // this fix [Org ID] undefined in server side if not using custom point
-  if (serverConfig.openaiOrgId !== undefined) {
-    console.log("[Org ID]", serverConfig.openaiOrgId);
-  }
 
   const timeoutId = setTimeout(
     () => {
@@ -129,11 +126,28 @@ export async function requestOpenai(req: NextRequest) {
   try {
     const res = await fetch(fetchUrl, fetchOptions);
 
+    // Extract the OpenAI-Organization header from the response
+    const openaiOrganizationHeader = res.headers.get("OpenAI-Organization");
+
+    // Check if serverConfig.openaiOrgId is defined and not an empty string
+    if (serverConfig.openaiOrgId && serverConfig.openaiOrgId.trim() !== "") {
+      // If openaiOrganizationHeader is present, log it; otherwise, log that the header is not present
+      console.log("[Org ID]", openaiOrganizationHeader);
+    } else {
+      console.log("[Org ID] is not set up.");
+    }
+
     // to prevent browser prompt for credentials
     const newHeaders = new Headers(res.headers);
     newHeaders.delete("www-authenticate");
     // to disable nginx buffering
     newHeaders.set("X-Accel-Buffering", "no");
+
+    // Conditionally delete the OpenAI-Organization header from the response if [Org ID] is undefined or empty (not setup in ENV)
+    // Also, this is to prevent the header from being sent to the client
+    if (!serverConfig.openaiOrgId || serverConfig.openaiOrgId.trim() === "") {
+      newHeaders.delete("OpenAI-Organization");
+    }
 
     // to fix the issue that the upstream server does not send the content-type header
     const contentType = res.headers.get("Content-Type") || "";

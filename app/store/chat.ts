@@ -1,4 +1,4 @@
-import { trimTopic } from "../utils";
+import { trimTopic, getMessageTextContent } from "../utils";
 
 import Locale, { getLang } from "../locales";
 import { showToast } from "../components/ui-lib";
@@ -6,14 +6,16 @@ import { ModelConfig, ModelType, useAppConfig } from "./config";
 import { createEmptyMask, Mask } from "./mask";
 import {
   DEFAULT_INPUT_TEMPLATE,
+  DEFAULT_MODELS,
   DEFAULT_SYSTEM_TEMPLATE,
   KnowledgeCutOffDate,
   ModelProvider,
   ServiceProvider,
   StoreKey,
   SUMMARIZE_MODEL,
+  GEMINI_SUMMARIZE_MODEL,
 } from "../constant";
-import { ClientApi, RequestMessage } from "../client/api";
+import { ClientApi, RequestMessage, MultimodalContent } from "../client/api";
 import { ChatControllerPool } from "../client/controller";
 import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
@@ -85,18 +87,38 @@ function createEmptySession(): ChatSession {
 
 function getSummarizeModel(currentModel: string) {
   // if it is using gpt-* models, force to use 3.5 to summarize
-  return currentModel.startsWith("gpt") ? SUMMARIZE_MODEL : currentModel;
+  if (currentModel.startsWith("gpt")) {
+    return SUMMARIZE_MODEL;
+  }
+  if (currentModel.startsWith("gemini-pro")) {
+    return GEMINI_SUMMARIZE_MODEL;
+  }
+  return currentModel;
 }
 
 function countMessages(msgs: ChatMessage[]) {
-  return msgs.reduce((pre, cur) => pre + estimateTokenLength(cur.content), 0);
+  return msgs.reduce(
+    (pre, cur) => pre + estimateTokenLength(getMessageTextContent(cur)),
+    0,
+  );
 }
 
 function fillTemplateWith(input: string, modelConfig: ModelConfig) {
-  let cutoff =
+  const cutoff =
     KnowledgeCutOffDate[modelConfig.model] ?? KnowledgeCutOffDate.default;
+  // Find the model in the DEFAULT_MODELS array that matches the modelConfig.model
+  const modelInfo = DEFAULT_MODELS.find((m) => m.name === modelConfig.model);
+
+  var serviceProvider = "OpenAI";
+  if (modelInfo) {
+    // TODO: auto detect the providerName from the modelConfig.model
+
+    // Directly use the providerName from the modelInfo
+    serviceProvider = modelInfo.provider.providerName;
+  }
 
   const vars = {
+    ServiceProvider: serviceProvider,
     cutoff,
     model: modelConfig.model,
     time: new Date().toLocaleString(),
@@ -113,7 +135,8 @@ function fillTemplateWith(input: string, modelConfig: ModelConfig) {
   }
 
   Object.entries(vars).forEach(([name, value]) => {
-    output = output.replaceAll(`{{${name}}}`, value);
+    const regex = new RegExp(`{{${name}}}`, "g");
+    output = output.replace(regex, value.toString()); // Ensure value is a string
   });
 
   return output;
@@ -273,20 +296,7 @@ export const useChatStore = createPersistStore(
         get().summarizeSession();
       },
 
-      // getChantEndpoint(session: ChatSession) {
-      //   const accessStore = useAccessStore.getState();
-      //   const endpointId =
-      //     session.mask.endpointId ?? accessStore.defaultEndpoint;
-      //   const endpoints = accessStore.endpoints;
-
-      //   let endpoint =
-      //     endpoints.find((e) => e.id === endpointId) || endpoints[0];
-      //   console.log(["Default Endpoint"], endpoint);
-
-      //   return endpoint;
-      // },
-
-      async onUserInput(content: string) {
+      async onUserInput(content: string, attachImages?: string[]) {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
         const endpointId = session.mask.endpointId || "";
@@ -297,9 +307,29 @@ export const useChatStore = createPersistStore(
         const userContent = fillTemplateWith(content, modelConfig);
         console.log("[User Input] after template: ", userContent);
 
-        const userMessage: ChatMessage = createMessage({
+        let mContent: string | MultimodalContent[] = userContent;
+
+        if (attachImages && attachImages.length > 0) {
+          mContent = [
+            {
+              type: "text",
+              text: userContent,
+            },
+          ];
+          mContent = mContent.concat(
+            attachImages.map((url) => {
+              return {
+                type: "image_url",
+                image_url: {
+                  url: url,
+                },
+              };
+            }),
+          );
+        }
+        let userMessage: ChatMessage = createMessage({
           role: "user",
-          content: userContent,
+          content: mContent,
         });
 
         const botMessage: ChatMessage = createMessage({
@@ -317,7 +347,7 @@ export const useChatStore = createPersistStore(
         get().updateCurrentSession((session) => {
           const savedUserMessage = {
             ...userMessage,
-            content,
+            content: mContent,
           };
           session.messages = session.messages.concat([
             savedUserMessage,
@@ -473,7 +503,7 @@ export const useChatStore = createPersistStore(
         ) {
           const msg = messages[i];
           if (!msg || msg.isError) continue;
-          tokenCount += estimateTokenLength(msg.content);
+          tokenCount += estimateTokenLength(getMessageTextContent(msg));
           reversedRecentMessages.push(msg);
         }
 
@@ -517,7 +547,7 @@ export const useChatStore = createPersistStore(
           .getEndpointOrDefault(endpointId);
 
         var api: ClientApi;
-        if (modelConfig.model === "gemini-pro") {
+        if (modelConfig.model.startsWith("gemini")) {
           api = new ClientApi(ModelProvider.GeminiPro, endpoint);
         } else {
           api = new ClientApi(ModelProvider.GPT, endpoint);
@@ -544,6 +574,7 @@ export const useChatStore = createPersistStore(
             messages: topicMessages,
             config: {
               model: getSummarizeModel(session.mask.modelConfig.model),
+              stream: false,
             },
             onFinish(message) {
               get().updateCurrentSession(
@@ -587,6 +618,10 @@ export const useChatStore = createPersistStore(
           historyMsgLength > modelConfig.compressMessageLengthThreshold &&
           modelConfig.sendMemory
         ) {
+          /** Destruct max_tokens while summarizing
+           * this param is just shit
+           **/
+          const { max_tokens, ...modelcfg } = modelConfig;
           api.llm.chat({
             session_id: session.id,
             messages: toBeSummarizedMsgs.concat(
@@ -597,7 +632,7 @@ export const useChatStore = createPersistStore(
               }),
             ),
             config: {
-              ...modelConfig,
+              ...modelcfg,
               stream: true,
               model: getSummarizeModel(session.mask.modelConfig.model),
             },

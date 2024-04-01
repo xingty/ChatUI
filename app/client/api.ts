@@ -5,19 +5,26 @@ import {
   ModelProvider,
   ServiceProvider,
 } from "../constant";
-import { ChatMessage, ModelType, Endpoint, useAccessStore } from "../store";
+import { Endpoint, ModelType, useAccessStore, useChatStore } from "../store";
 import { ChatGPTApi } from "./platforms/openai";
 import { GeminiProApi } from "./platforms/google";
-import { endianness } from "os";
 export const ROLES = ["system", "user", "assistant"] as const;
 export type MessageRole = (typeof ROLES)[number];
 
 export const Models = ["gpt-3.5-turbo", "gpt-4"] as const;
 export type ChatModel = ModelType;
 
+export interface MultimodalContent {
+  type: "text" | "image_url";
+  text?: string;
+  image_url?: {
+    url: string;
+  };
+}
+
 export interface RequestMessage {
   role: MessageRole;
-  content: string;
+  content: string | MultimodalContent[];
 }
 
 export interface LLMConfig {
@@ -104,7 +111,6 @@ export class ClientApi {
 
 export function getHeaders(endpoint?: Endpoint) {
   const accessStore = useAccessStore.getState();
-  // const endpoint = accessStore.getDefaultEndpoint();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -119,8 +125,8 @@ export function getHeaders(endpoint?: Endpoint) {
     return headers;
   }
 
-  // const modelConfig = useChatStore.getState().currentSession().mask.modelConfig;
-  // const isGoogle = modelConfig.model === "gemini-pro";
+  const modelConfig = useChatStore.getState().currentSession().mask.modelConfig;
+  const isGoogle = modelConfig.model.startsWith("gemini");
   // const isAzure = accessStore.provider === ServiceProvider.Azure;
   const isAzure = endpoint?.provider === ServiceProvider.Azure;
   const authHeader = isAzure ? "api-key" : "Authorization";
@@ -130,20 +136,24 @@ export function getHeaders(endpoint?: Endpoint) {
   //   ? accessStore.azureApiKey
   //   : accessStore.openaiApiKey;
   const apiKey = endpoint?.apiKey || "";
+  const clientConfig = getClientConfig();
 
   const makeBearer = (s: string) => `${isAzure ? "" : "Bearer "}${s.trim()}`;
   const validString = (x: string) => x && x.length > 0;
 
-  // use user's api key first
-  if (validString(apiKey)) {
-    headers[authHeader] = makeBearer(apiKey);
-  } else if (
-    accessStore.enabledAccessControl() &&
-    validString(accessStore.accessCode)
-  ) {
-    headers[authHeader] = makeBearer(
-      ACCESS_CODE_PREFIX + accessStore.accessCode,
-    );
+  // when using google api in app, not set auth header
+  if (!(isGoogle && clientConfig?.isApp)) {
+    // use user's api key first
+    if (validString(apiKey)) {
+      headers[authHeader] = makeBearer(apiKey);
+    } else if (
+      accessStore.enabledAccessControl() &&
+      validString(accessStore.accessCode)
+    ) {
+      headers[authHeader] = makeBearer(
+        ACCESS_CODE_PREFIX + accessStore.accessCode,
+      );
+    }
   }
 
   return headers;
