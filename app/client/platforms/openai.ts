@@ -7,7 +7,12 @@ import {
   REQUEST_TIMEOUT_MS,
   ServiceProvider,
 } from "@/app/constant";
-import { useAppConfig, useChatStore, Endpoint } from "@/app/store";
+import {
+  useAppConfig,
+  useChatStore,
+  useAccessStore,
+  Endpoint,
+} from "@/app/store";
 
 import {
   ChatOptions,
@@ -57,7 +62,7 @@ export class ChatGPTApi implements LLMApi {
     }
 
     const isAzure = endpoint.provider === ServiceProvider.Azure;
-    if (isAzure && !accessStore.isValidAzure()) {
+    if (isAzure && !useAccessStore.getState().isValidAzure()) {
       throw Error(
         "incomplete azure config, please check it in your settings page",
       );

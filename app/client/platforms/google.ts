@@ -27,6 +27,7 @@ export class GeminiProApi implements LLMApi {
   }
   async chat(options: ChatOptions): Promise<void> {
     // const apiClient = this;
+    const endpoint = this.endpoint;
     const visionModel = isVisionModel(options.config.model);
     let multimodal = false;
     const messages = options.messages.map((v) => {

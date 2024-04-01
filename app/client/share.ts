@@ -74,7 +74,14 @@ export class ShareApi {
     const sid = session.id;
     const title = session.topic;
     const content = messages
-      .map((m) => `## ${m.role}\n${m.content.trim()}\n`)
+      .map((m) => {
+        let content = m.content;
+        if (typeof m.content === "string") {
+          content = (m.content as string).trim();
+        }
+
+        return `## ${m.role}\n${content}\n`;
+      })
       .join("\n");
     console.log("[ShareToGithub]", messages);
     const systemInfo = extraSystemInfo(session);
