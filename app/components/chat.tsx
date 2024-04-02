@@ -476,8 +476,8 @@ export function ChatActions(props: {
     const isUnavaliableModel = !models.some(
       (m) => m.name.trim() === currentModel,
     );
-    const model = models.find((m) => m.name.trim() === currentModel);
-    console.log(["Model debug"], isUnavaliableModel, currentModel, models);
+    // const model = models.find((m) => m.name.trim() === currentModel);
+    // console.log(["Model debug"], isUnavaliableModel, currentModel, models);
     if (isUnavaliableModel && models.length > 0) {
       const nextModel = models[0].name as ModelType;
       chatStore.updateCurrentSession(

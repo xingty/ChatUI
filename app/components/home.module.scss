@@ -41,7 +41,7 @@
   top: 0;
   width: var(--sidebar-width);
   box-sizing: border-box;
-  padding: 20px;
+  padding: 15px;
   background-color: var(--second);
   display: flex;
   flex-direction: column;
@@ -135,8 +135,7 @@
 
 .sidebar-header {
   position: relative;
-  padding-top: 20px;
-  padding-bottom: 20px;
+  padding-bottom: 15px;
 }
 
 .sidebar-logo {
