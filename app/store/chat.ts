@@ -22,6 +22,7 @@ import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
 import { useAccessStore } from "../store";
+import { getCandidateTitleEndpoints } from "../utils/endpoint";
 
 export type ChatMessage = RequestMessage & {
   date: string;
@@ -542,16 +543,13 @@ export const useChatStore = createPersistStore(
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
         const endpointId = session.mask.endpointId || "";
-        const endpoint = useAccessStore
-          .getState()
-          .getEndpointOrDefault(endpointId);
-
-        var api: ClientApi;
-        if (modelConfig.model.startsWith("gemini")) {
-          api = new ClientApi(ModelProvider.GeminiPro, endpoint);
-        } else {
-          api = new ClientApi(ModelProvider.GPT, endpoint);
-        }
+        const accessStore = useAccessStore.getState();
+        const current = accessStore.getEndpointOrDefault(endpointId);
+        const endpoint = getCandidateTitleEndpoints(
+          accessStore.endpoints,
+          current,
+        );
+        console.log("[Summarize] endpoint: ", endpoint?.name);
 
         // remove error messages if any
         const messages = session.messages;
@@ -561,8 +559,16 @@ export const useChatStore = createPersistStore(
         if (
           config.enableAutoGenerateTitle &&
           session.topic === DEFAULT_TOPIC &&
-          countMessages(messages) >= SUMMARIZE_MIN_LEN
+          countMessages(messages) >= SUMMARIZE_MIN_LEN &&
+          endpoint
         ) {
+          var api: ClientApi;
+          if (modelConfig.model.startsWith("gemini")) {
+            api = new ClientApi(ModelProvider.GeminiPro, endpoint);
+          } else {
+            api = new ClientApi(ModelProvider.GPT, endpoint);
+          }
+
           const topicMessages = messages.concat(
             createMessage({
               role: "user",

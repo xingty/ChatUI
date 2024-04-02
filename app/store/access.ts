@@ -74,6 +74,7 @@ export interface Endpoint {
   models: string;
   createdAt: number;
   type: string;
+  genTitle: boolean;
 }
 
 export interface ShareProvider {
@@ -96,6 +97,7 @@ export const createEndpoint = (provider: ServiceProvider) => {
     models: "",
     createdAt: 0,
     type: "user",
+    genTitle: false,
   };
 };
 

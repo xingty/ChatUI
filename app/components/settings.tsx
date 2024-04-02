@@ -243,6 +243,7 @@ function EditEndpointModal(props: { id: string; onClose: () => void }) {
       models: "",
       createdAt: Date.now(),
       type: "user",
+      genTitle: false,
     };
   }
 
@@ -370,6 +371,21 @@ function EditEndpointModal(props: { id: string; onClose: () => void }) {
                     setEndpoint({
                       ...endpoint,
                       apiVersion: e.currentTarget.value,
+                    })
+                  }
+                ></input>
+              </ListItem>
+              <ListItem
+                title="Generate title"
+                subTitle="Will be used to generate conversation titles"
+              >
+                <input
+                  type="checkbox"
+                  checked={endpoint?.genTitle}
+                  onChange={(e) =>
+                    setEndpoint({
+                      ...endpoint,
+                      genTitle: e.currentTarget.checked,
                     })
                   }
                 ></input>
