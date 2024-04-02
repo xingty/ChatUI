@@ -86,9 +86,9 @@ function createEmptySession(): ChatSession {
   };
 }
 
-function getSummarizeModel(currentModel: string) {
+function getSummarizeModel(currentModel: string, selfHost: boolean = true) {
   // if it is using gpt-* models, force to use 3.5 to summarize
-  if (currentModel.startsWith("gpt")) {
+  if (!selfHost || currentModel.startsWith("gpt")) {
     return SUMMARIZE_MODEL;
   }
   if (currentModel.startsWith("gemini-pro")) {
@@ -552,6 +552,7 @@ export const useChatStore = createPersistStore(
         console.log("[Summarize] endpoint: ", endpoint?.name);
 
         let clientAPI: ClientApi | null = null;
+        const model = modelConfig.model;
         if (endpoint) {
           if (modelConfig.model.startsWith("gemini")) {
             clientAPI = new ClientApi(ModelProvider.GeminiPro, endpoint);
@@ -581,7 +582,7 @@ export const useChatStore = createPersistStore(
             session_id: session.id,
             messages: topicMessages,
             config: {
-              model: getSummarizeModel(session.mask.modelConfig.model),
+              model: getSummarizeModel(model, endpointId === endpoint?.id),
               stream: false,
             },
             onFinish(message) {
@@ -643,7 +644,7 @@ export const useChatStore = createPersistStore(
             config: {
               ...modelcfg,
               stream: true,
-              model: getSummarizeModel(session.mask.modelConfig.model),
+              model: getSummarizeModel(model, endpointId === endpoint?.id),
             },
             onUpdate(message) {
               session.memoryPrompt = message;
