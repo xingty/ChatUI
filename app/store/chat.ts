@@ -551,6 +551,15 @@ export const useChatStore = createPersistStore(
         );
         console.log("[Summarize] endpoint: ", endpoint?.name);
 
+        let clientAPI: ClientApi | null = null;
+        if (endpoint) {
+          if (modelConfig.model.startsWith("gemini")) {
+            clientAPI = new ClientApi(ModelProvider.GeminiPro, endpoint);
+          } else {
+            clientAPI = new ClientApi(ModelProvider.GPT, endpoint);
+          }
+        }
+
         // remove error messages if any
         const messages = session.messages;
 
@@ -560,22 +569,15 @@ export const useChatStore = createPersistStore(
           config.enableAutoGenerateTitle &&
           session.topic === DEFAULT_TOPIC &&
           countMessages(messages) >= SUMMARIZE_MIN_LEN &&
-          endpoint
+          clientAPI
         ) {
-          var api: ClientApi;
-          if (modelConfig.model.startsWith("gemini")) {
-            api = new ClientApi(ModelProvider.GeminiPro, endpoint);
-          } else {
-            api = new ClientApi(ModelProvider.GPT, endpoint);
-          }
-
           const topicMessages = messages.concat(
             createMessage({
               role: "user",
               content: Locale.Store.Prompt.Topic,
             }),
           );
-          api.llm.chat({
+          clientAPI.llm.chat({
             session_id: session.id,
             messages: topicMessages,
             config: {
@@ -622,13 +624,14 @@ export const useChatStore = createPersistStore(
 
         if (
           historyMsgLength > modelConfig.compressMessageLengthThreshold &&
-          modelConfig.sendMemory
+          modelConfig.sendMemory &&
+          clientAPI
         ) {
           /** Destruct max_tokens while summarizing
            * this param is just shit
            **/
           const { max_tokens, ...modelcfg } = modelConfig;
-          api.llm.chat({
+          clientAPI.llm.chat({
             session_id: session.id,
             messages: toBeSummarizedMsgs.concat(
               createMessage({
