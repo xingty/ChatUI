@@ -32,18 +32,18 @@ async function handle(
 
   const subpath = params.path.join("/");
 
-  if (!ALLOWD_PATH.has(subpath)) {
-    console.log("[OpenAI Route] forbidden path ", subpath);
-    return NextResponse.json(
-      {
-        error: true,
-        msg: "you are not allowed to request " + subpath,
-      },
-      {
-        status: 403,
-      },
-    );
-  }
+  // if (!ALLOWD_PATH.has(subpath)) {
+  //   console.log("[OpenAI Route] forbidden path ", subpath);
+  //   return NextResponse.json(
+  //     {
+  //       error: true,
+  //       msg: "you are not allowed to request " + subpath,
+  //     },
+  //     {
+  //       status: 403,
+  //     },
+  //   );
+  // }
 
   const authResult = auth(req, ModelProvider.GPT);
   if (authResult.error) {
