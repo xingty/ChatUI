@@ -294,7 +294,6 @@ export const useChatStore = createPersistStore(
           session.lastUpdate = Date.now();
         });
         get().updateStat(message);
-        get().summarizeSession();
       },
 
       async onUserInput(content: string, attachImages?: string[]) {
@@ -378,11 +377,15 @@ export const useChatStore = createPersistStore(
               session.messages = session.messages.concat();
             });
           },
-          onFinish(message) {
+          onFinish(message, statusCode) {
             botMessage.streaming = false;
             if (message) {
               botMessage.content = message;
               get().onNewMessage(botMessage);
+
+              if (statusCode >= 200 && statusCode < 300) {
+                get().summarizeSession();
+              }
             }
             ChatControllerPool.remove(session.id, botMessage.id);
           },
@@ -585,7 +588,7 @@ export const useChatStore = createPersistStore(
               model: getSummarizeModel(model, endpointId === endpoint?.id),
               stream: false,
             },
-            onFinish(message) {
+            onFinish(message, statusCode) {
               get().updateCurrentSession(
                 (session) =>
                   (session.topic =

@@ -159,6 +159,7 @@ export class ChatGPTApi implements LLMApi {
         let responseText = "";
         let remainText = "";
         let finished = false;
+        let statusCode = 200;
 
         // animate response to make it looks smooth
         function animateResponseText() {
@@ -188,7 +189,7 @@ export class ChatGPTApi implements LLMApi {
         const finish = () => {
           if (!finished) {
             finished = true;
-            options.onFinish(responseText + remainText);
+            options.onFinish(responseText + remainText, statusCode);
           }
         };
 
@@ -206,6 +207,7 @@ export class ChatGPTApi implements LLMApi {
 
             if (contentType?.startsWith("text/plain")) {
               responseText = await res.clone().text();
+              statusCode = res.status;
               return finish();
             }
 
@@ -232,6 +234,7 @@ export class ChatGPTApi implements LLMApi {
               }
 
               responseText = responseTexts.join("\n\n");
+              statusCode = res.status;
 
               return finish();
             }
@@ -284,7 +287,7 @@ export class ChatGPTApi implements LLMApi {
 
         const resJson = await res.json();
         const message = this.extractMessage(resJson);
-        options.onFinish(message);
+        options.onFinish(message, res.status);
       }
     } catch (e) {
       console.log("[Request] failed to make a chat request", e);
